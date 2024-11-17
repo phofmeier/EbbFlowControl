@@ -17,7 +17,8 @@
 				"espressif.esp-idf-extension",
 				"streetsidesoftware.code-spell-checker",
 				"ms-vscode.cpptools",
-				"twxs.cmake"
+				"twxs.cmake",
+				"akiramiyakoda.cppincludeguard"
 			]
 		},
 		"codespaces": {

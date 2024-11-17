@@ -14,6 +14,13 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+
+    // Create Event Loop
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    // Initialize and connect to Wifi
     wifi_utils_init();
     wifi_utils_init_sntp();
+
+    // MQTT Setup
 }
