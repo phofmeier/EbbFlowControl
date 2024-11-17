@@ -3,5 +3,6 @@
     "idf.adapterTargetName": "esp32",
     "C/C++ Include Guard.File Path Pascal Case to Snake Case": true,
     "C/C++ Include Guard.Macro Type": "Filepath",
+    "idf.pythonBinPath": "${env:IDF_PYTHON_ENV_PATH}/bin/python",
 
 }
