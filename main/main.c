@@ -2,6 +2,8 @@
 #include <esp_err.h>
 #include <nvs_flash.h>
 #include "wifi_utils.h"
+#include "mqtt5_connection.h"
+#include "pump_control.h"
 
 void app_main(void)
 {
@@ -14,13 +16,13 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-
     // Create Event Loop
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     // Initialize and connect to Wifi
     wifi_utils_init();
     wifi_utils_init_sntp();
-
     // MQTT Setup
+    mqtt5_conn_init();
+    create_pump_control_task();
 }
