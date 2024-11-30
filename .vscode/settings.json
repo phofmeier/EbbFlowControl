@@ -5,4 +5,7 @@
     "C/C++ Include Guard.Macro Type": "Filepath",
     "idf.pythonBinPath": "${env:IDF_PYTHON_ENV_PATH}/bin/python",
     "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-vscode.cpptools",
+    "C_Cpp.formatting": "clangFormat",
+    "C_Cpp.clang_format_fallbackStyle": "",
 }

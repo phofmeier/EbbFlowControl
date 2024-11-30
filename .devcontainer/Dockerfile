@@ -13,6 +13,7 @@ RUN apt-get update \
   libnuma1 \
   libpixman-1-0 \
   clang-tidy \
+  clang-format \
   && rm -rf /var/lib/apt/lists/*
 
 # QEMU
