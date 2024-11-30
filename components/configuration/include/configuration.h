@@ -9,7 +9,7 @@ struct pump_cycle_configuration_t {
 };
 
 struct configuration_t {
-  uint8_t id;
+  unsigned char id;
   struct pump_cycle_configuration_t pump_cycles;
 };
 

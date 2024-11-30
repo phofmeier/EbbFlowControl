@@ -2,6 +2,7 @@
 #define COMPONENTS_MQTT5_CONNECTION_INCLUDE_CONFIG_CONNECTION
 
 #include "configuration.h"
+#include "mqtt_client.h"
 
 #define CONFIG_MQTT_CONFIG_TOPIC "config/topic"
 
