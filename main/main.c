@@ -4,6 +4,7 @@
 #include "wifi_utils.h"
 #include "mqtt5_connection.h"
 #include "pump_control.h"
+#include "configuration.h"
 
 void app_main(void)
 {
@@ -24,5 +25,8 @@ void app_main(void)
     wifi_utils_init_sntp();
     // MQTT Setup
     mqtt5_conn_init();
+
+    load_configuration();
+
     create_pump_control_task();
 }

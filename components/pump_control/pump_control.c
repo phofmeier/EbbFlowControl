@@ -8,6 +8,27 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "configuration.h"
+#include "driver/gpio.h"
+
+#define GPIO_PUMP_OUTPUT_PIN 8
+
+void configure_pump_output()
+{
+    // zero-initialize the config structure.
+    gpio_config_t io_conf = {};
+    // disable interrupt
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    // set as output mode
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    // bit mask of the pins that you want to set,e.g.GPIO18/19
+    io_conf.pin_bit_mask = GPIO_PUMP_OUTPUT_PIN;
+    // disable pull-down mode
+    io_conf.pull_down_en = 0;
+    // disable pull-up mode
+    io_conf.pull_up_en = 0;
+    // configure GPIO with the given settings
+    gpio_config(&io_conf);
+}
 
 unsigned short get_cur_min_of_day()
 {
@@ -40,14 +61,10 @@ StackType_t xStack[STACK_SIZE];
 /* Function that implements the task being created. */
 void pump_control_task(void *pvParameters)
 {
-    /* The parameter value is expected to be 1 as 1 is passed in the
-
-       pvParameters value in the call to xTaskCreateStatic(). */
-
-    configASSERT((uint32_t)pvParameters == 1UL);
-
+    configure_pump_output();
+    gpio_set_level(GPIO_PUMP_OUTPUT_PIN, 0);
     const TickType_t xDelay = 1000 / portTICK_PERIOD_MS;
-    unsigned short last_run = 0;
+    signed short last_run = get_cur_min_of_day();
     bool pumping = false;
     time_t start_time;
     time_t now;
@@ -61,7 +78,7 @@ void pump_control_task(void *pvParameters)
             const unsigned short pump_time_s = configuration.pump_cycles.pump_time_s;
             if (diff_t >= pump_time_s)
             {
-                // disable pump
+                gpio_set_level(GPIO_PUMP_OUTPUT_PIN, 0);
                 pumping = false;
             }
         }
@@ -69,30 +86,22 @@ void pump_control_task(void *pvParameters)
         {
             unsigned short curr_min = get_cur_min_of_day();
             const unsigned short nr_pump_cycles = configuration.pump_cycles.nr_pump_cycles;
-            const unsigned short times_minutes_per_day = configuration.pump_cycles.times_minutes_per_day;
-            bool last_run_needs_reset = true;
+            const unsigned short *times_minutes_per_day = configuration.pump_cycles.times_minutes_per_day;
+            if (curr_min < last_run)
+            {
+                last_run = -1;
+            }
             for (size_t i = 0; i < nr_pump_cycles; i++)
             {
-
-                if (times_minutes_per_day[i] > last_run)
+                if (times_minutes_per_day[i] > last_run && curr_min >= times_minutes_per_day[i])
                 {
-                    // there exist a schedule time point in the future no need to reset
-                    last_run_needs_reset = false;
-
-                    if (curr_min >= times_minutes_per_day[i])
-                    {
-                        // start_running
-                        // enable pump
-                        pumping = true;
-                        last_run = times_minutes_per_day[i];
-                        time(&start_time);
-                        break;
-                    }
+                    // start_running
+                    pumping = true;
+                    last_run = times_minutes_per_day[i];
+                    time(&start_time);
+                    gpio_set_level(GPIO_PUMP_OUTPUT_PIN, 1);
+                    break;
                 }
-            }
-            if (last_run_needs_reset)
-            {
-                last_run = 0;
             }
         }
 
@@ -104,14 +113,13 @@ void pump_control_task(void *pvParameters)
 
 void create_pump_control_task()
 {
-    TaskHandle_t xHandle = NULL;
 
     /* Create the task without using any dynamic memory allocation. */
-    xHandle = xTaskCreateStatic(
+    xTaskCreateStatic(
         pump_control_task,
         "PumpControl",        /* Text name for the task. */
         STACK_SIZE,           /* Number of indexes in the xStack array. */
-        (void *)1,            /* Parameter passed into the task. */
+        NULL,                 /* Parameter passed into the task. */
         tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
         xStack,               /* Array to use as the task's stack. */
         &xTaskBuffer);        /* Variable to hold the task's data structure. */

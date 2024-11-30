@@ -1,5 +1,5 @@
-#ifndef CONFIGURATION_INCLUDE_CONFIGURATION
-#define CONFIGURATION_INCLUDE_CONFIGURATION
+#ifndef COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION
+#define COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION
 
 struct pump_cycle_configuration_t
 {
@@ -10,7 +10,7 @@ struct pump_cycle_configuration_t
 
 struct configuration_t
 {
-    char id;
+    uint8_t id;
     struct pump_cycle_configuration_t pump_cycles;
 };
 
@@ -23,4 +23,7 @@ static struct configuration_t configuration = {
     },
 };
 
-#endif /* CONFIGURATION_INCLUDE_CONFIGURATION */
+void load_configuration();
+void save_configuration();
+
+#endif /* COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION */
