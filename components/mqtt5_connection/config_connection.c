@@ -1,4 +1,3 @@
-#include "cJSON.h"
 #include "esp_log.h"
 #include "mqtt5_configuration.h"
 #include "mqtt_client.h"
@@ -42,21 +41,5 @@ void new_configuration_received_cb(esp_mqtt_event_handle_t event) {
   ESP_LOGI(TAG, "TOPIC=%.*s", event->topic_len, event->topic);
   ESP_LOGI(TAG, "DATA=%.*s", event->data_len, event->data);
 
-  cJSON *root = cJSON_ParseWithLength(event->data, event->data_len);
-
-  cJSON *pump_cycles = cJSON_GetObjectItem(root, "pump_cycles");
-  configuration.pump_cycles.pump_time_s =
-      cJSON_GetObjectItem(pump_cycles, "pump_time_s")->valueint;
-  configuration.pump_cycles.nr_pump_cycles =
-      cJSON_GetObjectItem(pump_cycles, "nr_pump_cycles")->valueint;
-
-  cJSON *times_minutes_per_day =
-      cJSON_GetObjectItem(pump_cycles, "times_minutes_per_day");
-  // TODO(peter): Check length here
-  for (size_t i = 0; i < cJSON_GetArraySize(times_minutes_per_day); i++) {
-    configuration.pump_cycles.times_minutes_per_day[i] =
-        cJSON_GetArrayItem(times_minutes_per_day, i)->valueint;
-  }
-  ESP_LOGI(TAG, "New Configuration set");
-  save_configuration();
+  set_config_from_json(event->data, event->data_len);
 }

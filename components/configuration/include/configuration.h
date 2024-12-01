@@ -1,11 +1,16 @@
 #ifndef COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION
 #define COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION
 
+#define CONFIG_MAX_NUMBER_PUMP_CYCLES_PER_DAY 24
+
+#include <stddef.h>
+
 struct pump_cycle_configuration_t {
   unsigned short pump_time_s;    // seconds the pump is on.
   unsigned short nr_pump_cycles; // number of pump cycles per day
-  unsigned short
-      times_minutes_per_day[24]; // time in minutes of the day to start the pump
+  unsigned short times_minutes_per_day
+      [CONFIG_MAX_NUMBER_PUMP_CYCLES_PER_DAY]; // time in minutes of the day to
+                                               // start the pump
 };
 
 struct configuration_t {
@@ -25,5 +30,7 @@ static struct configuration_t configuration = {
 
 void load_configuration();
 void save_configuration();
+
+void set_config_from_json(const char *json, size_t json_length);
 
 #endif /* COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION */
