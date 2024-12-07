@@ -8,4 +8,10 @@
     "editor.defaultFormatter": "ms-vscode.cpptools",
     "C_Cpp.formatting": "clangFormat",
     "C_Cpp.clang_format_fallbackStyle": "",
+    "cSpell.words": [
+        "LOGD",
+        "LOGI",
+        "mqtt",
+        "sntp"
+    ],
 }
