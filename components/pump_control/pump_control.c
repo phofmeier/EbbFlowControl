@@ -10,8 +10,22 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 
-#define GPIO_PUMP_OUTPUT_PIN 8
+/**
+ * @brief Stop pumping
+ *
+ */
+inline void stop_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0); }
 
+/**
+ * @brief Stop pumping
+ *
+ */
+inline void start_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1); }
+
+/**
+ * @brief Configure the GPIO output for the pump
+ *
+ */
 void configure_pump_output() {
   // zero-initialize the config structure.
   gpio_config_t io_conf = {};
@@ -20,7 +34,7 @@ void configure_pump_output() {
   // set as output mode
   io_conf.mode = GPIO_MODE_OUTPUT;
   // bit mask of the pins that you want to set,e.g.GPIO18/19
-  io_conf.pin_bit_mask = GPIO_PUMP_OUTPUT_PIN;
+  io_conf.pin_bit_mask = CONFIG_PUMP_GPIO_OUTPUT_PIN;
   // disable pull-down mode
   io_conf.pull_down_en = 0;
   // disable pull-up mode
@@ -29,15 +43,25 @@ void configure_pump_output() {
   gpio_config(&io_conf);
 }
 
+/**
+ * @brief Get the current minute of the day.
+ *
+ * The configured local timezone is used. The number represents the minutes
+ * since the start of the day.
+ *
+ * @return unsigned short minutes since start of the local day
+ */
 unsigned short get_cur_min_of_day() {
-  time_t now;
-  struct tm timeinfo;
-  // Set timezone to Germany Berlin
-  setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
+  // set timezone
+  setenv("TZ", CONFIG_LOCAL_TIME_ZONE, 1);
   tzset();
 
+  // get local time
+  time_t now;
   time(&now);
+  struct tm timeinfo;
   localtime_r(&now, &timeinfo);
+
   return timeinfo.tm_hour * 60 + timeinfo.tm_min;
 }
 
@@ -56,70 +80,65 @@ StaticTask_t xTaskBuffer;
    the RTOS port. */
 StackType_t xStack[STACK_SIZE];
 
-/* Function that implements the task being created. */
 void pump_control_task(void *pvParameters) {
+  // initialize pump
   configure_pump_output();
-  gpio_set_level(GPIO_PUMP_OUTPUT_PIN, 0);
+  stop_pump();
+
+  // setup task
   const TickType_t xDelay = 1000 / portTICK_PERIOD_MS;
   signed short last_run = get_cur_min_of_day();
   bool pumping = false;
-  time_t start_time;
+  time_t pumping_start_time;
   time_t now;
 
   for (;;) {
     if (pumping) {
+      // check if we need to stop
       time(&now);
-      double diff_t = difftime(now, start_time);
-      const unsigned short pump_time_s = configuration.pump_cycles.pump_time_s;
-      if (diff_t >= pump_time_s) {
-        gpio_set_level(GPIO_PUMP_OUTPUT_PIN, 0);
+      const double time_diff_s = difftime(now, pumping_start_time);
+      if (time_diff_s >= configuration.pump_cycles.pump_time_s) {
+        stop_pump();
         pumping = false;
       }
     } else {
-      unsigned short curr_min = get_cur_min_of_day();
+
+      const unsigned short curr_min = get_cur_min_of_day();
       const unsigned short nr_pump_cycles =
           configuration.pump_cycles.nr_pump_cycles;
       const unsigned short *times_minutes_per_day =
           configuration.pump_cycles.times_minutes_per_day;
       if (curr_min < last_run) {
+        // Next day -> reset last run
         last_run = -1;
       }
+
       for (size_t i = 0; i < nr_pump_cycles; i++) {
+        // Check each possible config for starting
         if (times_minutes_per_day[i] > last_run &&
             curr_min >= times_minutes_per_day[i]) {
-          // start_running
+          // current config never run and its time -> start pump
           pumping = true;
           last_run = times_minutes_per_day[i];
-          time(&start_time);
-          gpio_set_level(GPIO_PUMP_OUTPUT_PIN, 1);
+          time(&pumping_start_time); // update start time
+          start_pump();
           break;
         }
       }
     }
 
-    vTaskDelay(xDelay);
+    vTaskDelay(xDelay); // wait for next cycle
   }
 }
 
-/* Function that creates a task. */
-
 void create_pump_control_task() {
 
-  /* Create the task without using any dynamic memory allocation. */
+  // Static task without dynamic memory allocation
   xTaskCreateStatic(
-      pump_control_task, "PumpControl", /* Text name for the task. */
+      pump_control_task, "PumpControl", /* Task Name */
       STACK_SIZE,           /* Number of indexes in the xStack array. */
-      NULL,                 /* Parameter passed into the task. */
+      NULL,                 /* No Parameter */
       tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
       xStack,               /* Array to use as the task's stack. */
       &xTaskBuffer);        /* Variable to hold the task's data structure. */
-
-  /* puxStackBuffer and pxTaskBuffer were not NULL, so the task will have
-
-     been created, and xHandle will be the task's handle. Use the handle
-
-     to suspend the task. */
-
-  // [vTaskSuspend](/ Documentation / 02 - Kernel / 04 - API - references / 02 -
-  // Task - control / 06 - vTaskSuspend)(xHandle);
 }

@@ -1,0 +1,14 @@
+menu "Pump Application Config"
+    config PUMP_GPIO_OUTPUT_PIN
+        int "GPIO Pin of the Pump"
+        default 8
+        help
+            Set the pin number to activate the pump
+
+    config LOCAL_TIME_ZONE
+        string "Local time zone"
+        default "CET-1CEST,M3.5.0,M10.5.0/3"
+        help
+            Code for the local time zone which is used to setup the pumping times. (Defaults to Germany/Berlin)
+
+endmenu
