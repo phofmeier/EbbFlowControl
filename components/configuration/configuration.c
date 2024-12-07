@@ -1,8 +1,10 @@
 #include "configuration.h"
+#include "esp_err.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include <stdio.h>
 
+// Define names which are used for the persistent storage
 #define CONFIG_STORAGE_NAMESPACE "EFCConf"
 #define CONFIG_ID_NAME "id"
 #define CONFIG_PUMP_CYCLES_PUMP_TIME_S_NAME "PcPts"
@@ -11,13 +13,23 @@
 
 static const char *TAG = "Config";
 
+// Initial configuration
+struct configuration_t configuration = {
+    .id = CONFIG_DEVICE_ID,
+    .pump_cycles =
+        {
+            .pump_time_s = 120,
+            .nr_pump_cycles = 3,
+            .times_minutes_per_day = {6 * 60, 12 * 60, 20 * 60},
+        },
+};
+
 void load_configuration() {
   ESP_LOGI(TAG, "Load Configuration");
   nvs_handle_t my_handle;
   esp_err_t err = nvs_open(CONFIG_STORAGE_NAMESPACE, NVS_READONLY, &my_handle);
 
   if (err == ESP_ERR_NVS_NOT_FOUND) {
-
     ESP_LOGI(TAG, "No config saved. save initial config");
     save_configuration();
     return;
@@ -73,6 +85,7 @@ void set_config_from_json(const char *json, const size_t json_length) {
 
   cJSON *pump_cycles = cJSON_GetObjectItem(root, "pump_cycles");
   if (pump_cycles != NULL) {
+    // Pump cycles key in json
     cJSON *pump_time_s = cJSON_GetObjectItem(pump_cycles, "pump_time_s");
     if (pump_time_s != NULL) {
       configuration.pump_cycles.pump_time_s = pump_time_s->valueint;

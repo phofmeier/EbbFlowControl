@@ -8,6 +8,12 @@ menu "Application Configuration"
         string "Password of the used Wifi."
         help
             Add the password of the Wifi Network.
+    
+    config DEVICE_ID
+        int "Device ID (0-255)."
+        default 0
+        help
+            Device ID of this specific device. Needs to be change if more than one device is used.
 
 
 endmenu

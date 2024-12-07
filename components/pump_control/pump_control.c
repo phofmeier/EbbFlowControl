@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <sys/time.h>
-#include <time.h>
-
 #include "pump_control.h"
 
 #include "configuration.h"
@@ -9,6 +5,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
+#include "sdkconfig.h"
+#include <stdio.h>
+#include <sys/time.h>
+#include <time.h>
 
 /**
  * @brief Stop pumping

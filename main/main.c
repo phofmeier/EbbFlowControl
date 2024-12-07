@@ -1,10 +1,11 @@
+#include <esp_err.h>
+#include <nvs_flash.h>
+#include <stdio.h>
+
 #include "configuration.h"
 #include "mqtt5_connection.h"
 #include "pump_control.h"
 #include "wifi_utils.h"
-#include <esp_err.h>
-#include <nvs_flash.h>
-#include <stdio.h>
 
 void app_main(void) {
   // Initialize NVS

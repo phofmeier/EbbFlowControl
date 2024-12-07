@@ -9,7 +9,7 @@
     "C_Cpp.formatting": "clangFormat",
     "C_Cpp.clang_format_fallbackStyle": "",
     "cSpell.words": [
-"endmenu",
+        "endmenu",
         "LOGD",
         "LOGI",
         "mqtt",
