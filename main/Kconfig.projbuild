@@ -14,6 +14,11 @@ menu "Application Configuration"
         default 0
         help
             Device ID of this specific device. Needs to be change if more than one device is used.
+    
+    config MQTT_BROKER_URI
+        string "URI of the MQTT broker."
+        help
+            Set the URI to the MQTT broker.
 
 
 endmenu

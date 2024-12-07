@@ -4,7 +4,8 @@
 #include "mqtt_client.h"
 
 static esp_mqtt5_user_property_item_t user_property_arr[] = {
-    {"board", "esp32"}, {"u", "user"}, {"p", "password"}};
+    {"version", "v0.0.0"},
+};
 
 #define USE_PROPERTY_ARR_SIZE                                                  \
   sizeof(user_property_arr) / sizeof(esp_mqtt5_user_property_item_t)

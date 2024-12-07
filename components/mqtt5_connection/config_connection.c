@@ -9,21 +9,21 @@
 static const char *TAG = "mqtt5_config";
 
 static esp_mqtt5_subscribe_property_config_t config_subscribe_property = {
-    .subscribe_id = 25555,
+    .subscribe_id = 1,
     .no_local_flag = false,
     .retain_as_published_flag = false,
     .retain_handle = 0,
-    .is_share_subscribe = true,
-    .share_name = "group1",
+    .is_share_subscribe = false,
+    .share_name = NULL,
 };
 
 static esp_mqtt5_publish_property_config_t config_publish_property = {
     .payload_format_indicator = 1,
     .message_expiry_interval = 1000,
     .topic_alias = 0,
-    .response_topic = "/topic/test/response",
-    .correlation_data = "123456",
-    .correlation_data_len = 6,
+    .response_topic = NULL,
+    .correlation_data = NULL,
+    .correlation_data_len = 0,
 };
 
 void subscribe_to_config_channel(esp_mqtt_client_handle_t client) {
@@ -31,7 +31,8 @@ void subscribe_to_config_channel(esp_mqtt_client_handle_t client) {
   esp_mqtt5_client_set_user_property(&config_subscribe_property.user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
   esp_mqtt5_client_set_subscribe_property(client, &config_subscribe_property);
-  int msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
+  int msg_id =
+      esp_mqtt_client_subscribe(client, CONFIG_MQTT_CONFIG_RECEIVE_TOPIC, 0);
   esp_mqtt5_client_delete_user_property(
       config_subscribe_property.user_property);
   config_subscribe_property.user_property = NULL;
@@ -65,8 +66,8 @@ void send_current_configuration(esp_mqtt_client_handle_t client) {
   esp_mqtt5_client_set_user_property(&config_publish_property.user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
   esp_mqtt5_client_set_publish_property(client, &config_publish_property);
-  int msg_id =
-      esp_mqtt_client_publish(client, "/topic/qos1", json_string, 0, 1, 1);
+  int msg_id = esp_mqtt_client_publish(client, CONFIG_MQTT_CONFIG_SEND_TOPIC,
+                                       json_string, 0, 1, 1);
   esp_mqtt5_client_delete_user_property(config_publish_property.user_property);
   config_publish_property.user_property = NULL;
   ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);

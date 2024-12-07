@@ -1,0 +1,32 @@
+menu "MQTT Application Configuration"
+    config MQTT_USERNAME
+        string "Username for MQTT."
+        default ""
+        help
+            Set the username to connect to the MQTT broker.
+
+    config MQTT_PASSWORD
+        string "Password for MQTT."
+        default ""
+        help
+            Set the password to connect to the MQTT broker.
+
+    config MQTT_STATUS_TOPIC
+        string "TOPIC for the status channel."
+        default "efc/status"
+        help
+            Set the topic which publishes the current status.
+
+    config MQTT_CONFIG_RECEIVE_TOPIC
+        string "Topic for receiving configs."
+        default "efc/config/set"
+        help
+            Set the topic where new configurations are arrived.
+    
+    config MQTT_CONFIG_SEND_TOPIC
+        string "Topic for sending configs."
+        default "efc/config"
+        help
+            Set the topic on which the current config is published.
+
+endmenu

@@ -17,6 +17,8 @@ void app_main(void) {
   }
   ESP_ERROR_CHECK(ret);
 
+  load_configuration();
+
   // Create Event Loop
   ESP_ERROR_CHECK(esp_event_loop_create_default());
 
@@ -25,8 +27,6 @@ void app_main(void) {
   wifi_utils_init_sntp();
   // MQTT Setup
   mqtt5_conn_init();
-
-  load_configuration();
-
+  // Create control tasks
   create_pump_control_task();
 }
