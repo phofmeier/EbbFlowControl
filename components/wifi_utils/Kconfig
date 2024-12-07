@@ -1,0 +1,14 @@
+menu "Wifi Application Config"
+    config WIFI_MAXIMUM_RETRY
+        int "Maximum attempts of WIFI connection retries."
+        default -1
+        help
+            Set the maximum number of attempts to try to connect to the wifi. (Set to -1 for infinite attempts.)
+
+    config WIFI_SNTP_POOL_SERVER
+        string "URL to the SNTP server."
+        default "pool.ntp.org"
+        help
+            Server Address of the SNTP server pool to synchronize the system time.
+
+endmenu

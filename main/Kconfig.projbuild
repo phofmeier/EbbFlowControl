@@ -1,0 +1,13 @@
+menu "Application Configuration"
+    config WIFI_SSID
+        string "SSID of the used Wifi."
+        help
+            Add the name of the Wifi Network.
+
+    config WIFI_PASSWORD
+        string "Password of the used Wifi."
+        help
+            Add the password of the Wifi Network.
+
+
+endmenu

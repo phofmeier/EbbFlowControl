@@ -18,7 +18,8 @@
 				"streetsidesoftware.code-spell-checker",
 				"ms-vscode.cpptools",
 				"twxs.cmake",
-				"akiramiyakoda.cppincludeguard"
+				"akiramiyakoda.cppincludeguard",
+				"cschlosser.doxdocgen"
 			]
 		},
 		"codespaces": {
