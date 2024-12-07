@@ -1,5 +1,4 @@
 #include "configuration.h"
-#include "cJSON.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include <stdio.h>
@@ -99,4 +98,25 @@ void set_config_from_json(const char *json, const size_t json_length) {
   }
   cJSON_Delete(root);
   save_configuration();
+}
+
+cJSON *get_config_as_json() {
+  cJSON *root = cJSON_CreateObject();
+  cJSON_AddNumberToObject(root, "id", configuration.id);
+
+  cJSON *pump_cycles = cJSON_AddObjectToObject(root, "pump_cycles");
+  cJSON_AddNumberToObject(pump_cycles, "pump_time_s",
+                          configuration.pump_cycles.pump_time_s);
+  cJSON_AddNumberToObject(pump_cycles, "nr_pump_cycles",
+                          configuration.pump_cycles.nr_pump_cycles);
+
+  cJSON *times_minutes_per_day_json_arr =
+      cJSON_AddArrayToObject(pump_cycles, "times_minutes_per_day");
+  for (size_t i = 0; i < configuration.pump_cycles.nr_pump_cycles; i++) {
+    cJSON_AddItemToArray(
+        times_minutes_per_day_json_arr,
+        cJSON_CreateNumber(configuration.pump_cycles.times_minutes_per_day[i]));
+  }
+
+  return root;
 }

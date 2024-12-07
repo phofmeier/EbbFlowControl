@@ -3,6 +3,7 @@
 
 #define CONFIG_MAX_NUMBER_PUMP_CYCLES_PER_DAY 24
 
+#include "cJSON.h"
 #include <stddef.h>
 
 struct pump_cycle_configuration_t {
@@ -32,5 +33,7 @@ void load_configuration();
 void save_configuration();
 
 void set_config_from_json(const char *json, size_t json_length);
+
+cJSON *get_config_as_json();
 
 #endif /* COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION */
