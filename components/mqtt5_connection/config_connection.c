@@ -34,6 +34,8 @@ void subscribe_to_config_channel(esp_mqtt_client_handle_t client) {
       config_subscribe_property.user_property);
   config_subscribe_property.user_property = NULL;
   ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+  send_current_configuration(client);
 }
 
 void new_configuration_received_cb(esp_mqtt_event_handle_t event) {
@@ -51,18 +53,18 @@ void new_configuration_received_cb(esp_mqtt_event_handle_t event) {
   ESP_LOGI(TAG, "DATA=%.*s", event->data_len, event->data);
 
   set_config_from_json(event->data, event->data_len);
-  send_current_configuration();
+  send_current_configuration(event->client);
 }
 
-void send_current_configuration() {
+void send_current_configuration(esp_mqtt_client_handle_t client) {
   cJSON *json_config = get_config_as_json();
   char *json_string = cJSON_PrintUnformatted(json_config);
 
   esp_mqtt5_client_set_user_property(&config_publish_property.user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
-  esp_mqtt5_client_set_publish_property(mqtt_client, &config_publish_property);
+  esp_mqtt5_client_set_publish_property(client, &config_publish_property);
   int msg_id =
-      esp_mqtt_client_publish(mqtt_client, "/topic/qos1", json_string, 0, 1, 1);
+      esp_mqtt_client_publish(client, "/topic/qos1", json_string, 0, 1, 1);
   esp_mqtt5_client_delete_user_property(config_publish_property.user_property);
   config_publish_property.user_property = NULL;
   ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);

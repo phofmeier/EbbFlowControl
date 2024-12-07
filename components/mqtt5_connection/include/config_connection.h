@@ -10,6 +10,6 @@ void subscribe_to_config_channel(esp_mqtt_client_handle_t client);
 
 void new_configuration_received_cb(esp_mqtt_event_handle_t event);
 
-void send_current_configuration();
+void send_current_configuration(esp_mqtt_client_handle_t client);
 
 #endif /* COMPONENTS_MQTT5_CONNECTION_INCLUDE_CONFIG_CONNECTION */

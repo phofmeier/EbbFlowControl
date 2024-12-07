@@ -5,8 +5,6 @@
 
 #define CONFIG_BROKER_URL "brocker_url"
 
-static esp_mqtt_client_handle_t mqtt_client;
-
 static esp_mqtt5_user_property_item_t user_property_arr[] = {
     {"board", "esp32"}, {"u", "user"}, {"p", "password"}};
 

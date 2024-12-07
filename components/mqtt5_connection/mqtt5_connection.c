@@ -232,14 +232,14 @@ void mqtt5_conn_init(void) {
       .session.last_will.retain = true,
   };
 
-  mqtt_client = esp_mqtt_client_init(&mqtt5_cfg);
+  esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt5_cfg);
 
   /* Set connection properties and user properties */
   esp_mqtt5_client_set_user_property(&connect_property.user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
   esp_mqtt5_client_set_user_property(&connect_property.will_user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
-  esp_mqtt5_client_set_connect_property(mqtt_client, &connect_property);
+  esp_mqtt5_client_set_connect_property(client, &connect_property);
 
   /* If you call esp_mqtt5_client_set_user_property to set user properties, DO
    * NOT forget to delete them. esp_mqtt5_client_set_connect_property will
@@ -250,7 +250,7 @@ void mqtt5_conn_init(void) {
 
   /* The last argument may be used to pass data to the event handler, in this
    * example mqtt_event_handler */
-  esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID,
-                                 mqtt5_event_handler, NULL);
-  esp_mqtt_client_start(mqtt_client);
+  esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt5_event_handler,
+                                 NULL);
+  esp_mqtt_client_start(client);
 }
