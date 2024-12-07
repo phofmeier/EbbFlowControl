@@ -1,11 +1,13 @@
 menu "Application Configuration"
     config WIFI_SSID
         string "SSID of the used Wifi."
+        default "wifi_ssid"
         help
             Add the name of the Wifi Network.
 
     config WIFI_PASSWORD
         string "Password of the used Wifi."
+        default "wifi_password"
         help
             Add the password of the Wifi Network.
     
@@ -17,6 +19,7 @@ menu "Application Configuration"
     
     config MQTT_BROKER_URI
         string "URI of the MQTT broker."
+        default "mqtt.uri.example"
         help
             Set the URI to the MQTT broker.
 
