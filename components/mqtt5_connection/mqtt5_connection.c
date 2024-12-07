@@ -1,25 +1,25 @@
 #include "mqtt5_connection.h"
 
 #include "config_connection.h"
-
-// #include "mqtt_shared.h"
-
+#include "esp_log.h"
 #include "esp_system.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-// #include "nvs_flash.h"
-// #include "esp_event.h"
-// #include "esp_netif.h"
-// #include "protocol_examples_common.h"
-#include "esp_log.h"
 
 static const char *TAG = "mqtt5";
 
+/**
+ * @brief Publish message that the status is connected.
+ *
+ * @param client mqtt5 client
+ */
 void send_status_connected(esp_mqtt_client_handle_t client) {
+  // build message
   char *connected_message = "{id: \"   \", connection: \"connected\"}";
   sprintf(&connected_message[6], "%3uhh", configuration.id);
+  static const int connected_message_length = 37;
 
   static esp_mqtt5_publish_property_config_t status_publish_property = {
       .payload_format_indicator = 1,
@@ -36,23 +36,38 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
   esp_mqtt5_client_set_publish_property(client, &status_publish_property);
   int msg_id = esp_mqtt_client_publish(client, CONFIG_MQTT_STATUS_TOPIC,
                                        connected_message,
-                                       sizeof(connected_message), 1, 1);
+                                       connected_message_length, 1, 1);
   esp_mqtt5_client_delete_user_property(status_publish_property.user_property);
   status_publish_property.user_property = NULL;
   ESP_LOGI(TAG, "sent Status connected successful, msg_id=%d", msg_id);
 }
 
+/**
+ * @brief Helper function to log an error if it occurs
+ *
+ * @param message pointer to the message
+ * @param error_code code of the error
+ */
 static void log_error_if_nonzero(const char *message, int error_code) {
   if (error_code != 0) {
     ESP_LOGE(TAG, "Last error %s: 0x%x", message, error_code);
   }
 }
 
+/**
+ * @brief Property value for disconnecting
+ *
+ */
 static esp_mqtt5_disconnect_property_config_t disconnect_property = {
     .session_expiry_interval = 60,
     .disconnect_reason = 0,
 };
 
+/**
+ * @brief Helper function to print the user property
+ *
+ * @param user_property current user property
+ */
 static void print_user_property(mqtt5_user_property_handle_t user_property) {
   if (user_property) {
     uint8_t count = esp_mqtt5_client_get_user_property_count(user_property);
@@ -73,10 +88,8 @@ static void print_user_property(mqtt5_user_property_handle_t user_property) {
   }
 }
 
-/*
- * @brief Event handler registered to receive MQTT events
- *
- *  This function is called by the MQTT client event loop.
+/**
+ * @brief Event handler for all mqtt events
  *
  * @param handler_args user data registered to the event.
  * @param base Event base for the handler(always MQTT Base in this example).
@@ -92,6 +105,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
 
   ESP_LOGD(TAG, "free heap size is %" PRIu32 ", minimum %" PRIu32,
            esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
+
   switch ((esp_mqtt_event_id_t)event_id) {
   case MQTT_EVENT_CONNECTED:
     ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
@@ -130,7 +144,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
       new_configuration_received_cb(event);
       break;
     }
-    ESP_LOGI(TAG, "Uknown data Received")
+    ESP_LOGI(TAG, "Uknown data Received");
     ESP_LOGI(TAG, "payload_format_indicator is %d",
              event->property->payload_format_indicator);
     ESP_LOGI(TAG, "response_topic is %.*s", event->property->response_topic_len,
@@ -165,8 +179,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
   }
 }
 
-void mqtt5_conn_init(void) {
-
+void mqtt5_conn_init() {
   esp_mqtt5_connection_property_config_t connect_property = {
       .session_expiry_interval = 10,
       .maximum_packet_size = 1024,
@@ -208,15 +221,11 @@ void mqtt5_conn_init(void) {
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
   esp_mqtt5_client_set_connect_property(client, &connect_property);
 
-  /* If you call esp_mqtt5_client_set_user_property to set user properties, DO
-   * NOT forget to delete them. esp_mqtt5_client_set_connect_property will
-   * malloc buffer to store the user_property and you can delete it after
-   */
+  // Need to delete user property
   esp_mqtt5_client_delete_user_property(connect_property.user_property);
   esp_mqtt5_client_delete_user_property(connect_property.will_user_property);
 
-  /* The last argument may be used to pass data to the event handler, in this
-   * example mqtt_event_handler */
+  // Register event handler
   esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt5_event_handler,
                                  NULL);
   esp_mqtt_client_start(client);

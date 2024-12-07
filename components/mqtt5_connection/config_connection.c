@@ -8,6 +8,10 @@
 
 static const char *TAG = "mqtt5_config";
 
+/**
+ * @brief property for subscribing to the config channel
+ *
+ */
 static esp_mqtt5_subscribe_property_config_t config_subscribe_property = {
     .subscribe_id = 1,
     .no_local_flag = false,
@@ -17,6 +21,10 @@ static esp_mqtt5_subscribe_property_config_t config_subscribe_property = {
     .share_name = NULL,
 };
 
+/**
+ * @brief property to publish to the config channel
+ *
+ */
 static esp_mqtt5_publish_property_config_t config_publish_property = {
     .payload_format_indicator = 1,
     .message_expiry_interval = 1000,
@@ -27,7 +35,6 @@ static esp_mqtt5_publish_property_config_t config_publish_property = {
 };
 
 void subscribe_to_config_channel(esp_mqtt_client_handle_t client) {
-
   esp_mqtt5_client_set_user_property(&config_subscribe_property.user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
   esp_mqtt5_client_set_subscribe_property(client, &config_subscribe_property);
@@ -37,8 +44,6 @@ void subscribe_to_config_channel(esp_mqtt_client_handle_t client) {
       config_subscribe_property.user_property);
   config_subscribe_property.user_property = NULL;
   ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-
-  send_current_configuration(client);
 }
 
 void new_configuration_received_cb(esp_mqtt_event_handle_t event) {

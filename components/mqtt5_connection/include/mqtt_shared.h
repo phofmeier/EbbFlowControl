@@ -3,6 +3,10 @@
 
 #include "mqtt_client.h"
 
+/**
+ * @brief user property included in all messages
+ *
+ */
 static esp_mqtt5_user_property_item_t user_property_arr[] = {
     {"version", "v0.0.0"},
 };
