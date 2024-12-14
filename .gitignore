@@ -54,3 +54,5 @@ dkms.conf
 build/
 sdkconfig
 sdkconfig.old
+node_modules
+warnings.txt
