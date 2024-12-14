@@ -30,7 +30,7 @@ jobs:
         uses: devcontainers/ci@v0.3
         with:
           # Change this to point to your image name
-          imageName: ghcr.io/${{REPOSITORY_LC}}-devcontainer
+          imageName: ghcr.io/${{ github.repository_owner }}/ebbflowcontrol-devcontainer
           # Change this to be your CI task/script
           runCmd: |
             idf.py build
