@@ -20,11 +20,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: set lower case repository name
-        run: |
-          echo "REPOSITORY_LC=${REPOSITORYNAME,,}" >>${GITHUB_ENV}
-        env:
-          REPOSITORYNAME: "${{ github.repository }}"
       - name: Build and run Dev Container task
         uses: devcontainers/ci@v0.3
         with:
