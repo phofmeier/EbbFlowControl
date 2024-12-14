@@ -21,12 +21,16 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: set lower case repository name
+        run: |
+          echo "REPOSITORY_LC=${REPOSITORYNAME,,}" >>${GITHUB_ENV}
+        env:
+          REPOSITORYNAME: "${{ github.repository }}"
       - name: Build and run Dev Container task
         uses: devcontainers/ci@v0.3
         with:
           # Change this to point to your image name
-          imageName: ghcr.io/${{ github.repository }}-devcontainer
+          imageName: ghcr.io/${{ REPOSITORY_LC }}-devcontainer
           # Change this to be your CI task/script
           runCmd: |
             idf.py build
