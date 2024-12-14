@@ -1,3 +1,6 @@
+[![build](https://github.com/phofmeier/EbbFlowControl/actions/workflows/build.yml/badge.svg)](https://github.com/phofmeier/EbbFlowControl/actions/workflows/build.yml)
+[![pre-commit](https://github.com/phofmeier/EbbFlowControl/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/phofmeier/EbbFlowControl/actions/workflows/pre-commit.yml)
+
 # Ebb Flow Control
 
 This repository hold the software for a controller for an automated ebb flow hydroponic grow system. The controller runs on an ESP32 and can be configured via MQTT. The MQTT connection is additionally used to send status information and data for monitoring to an overall system.
