@@ -1,18 +1,16 @@
 {
-    "C_Cpp.intelliSenseEngine": "default",
-    "idf.adapterTargetName": "esp32",
-    "C/C++ Include Guard.File Path Pascal Case to Snake Case": true,
-    "C/C++ Include Guard.Macro Type": "Filepath",
-    "idf.pythonBinPath": "${env:IDF_PYTHON_ENV_PATH}/bin/python",
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "ms-vscode.cpptools",
-    "C_Cpp.formatting": "clangFormat",
-    "C_Cpp.clang_format_fallbackStyle": "",
-    "cSpell.words": [
-        "endmenu",
-        "LOGD",
-        "LOGI",
-        "mqtt",
-        "sntp"
-    ],
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.adapterTargetName": "esp32",
+  "C/C++ Include Guard.File Path Pascal Case to Snake Case": true,
+  "C/C++ Include Guard.Macro Type": "Filepath",
+  "idf.pythonBinPath": "${env:IDF_PYTHON_ENV_PATH}/bin/python",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "ms-vscode.cpptools",
+  "C_Cpp.formatting": "clangFormat",
+  "C_Cpp.clang_format_fallbackStyle": "",
+  "cSpell.words": ["endmenu", "LOGD", "LOGI", "mqtt", "sntp"],
+  "files.associations": {
+    "config_connection.h": "c",
+    "mqtt5_connection.h": "c"
+  }
 }

@@ -35,7 +35,7 @@ static int s_retry_num = 0; //< Number of current connection attempts.
  * @param arg unused event handler arguments (NULL)
  * @param event_base Event base type (WIFI_EVENT or IP_EVENT)
  * @param event_id id of the specific event
- * @param event_data data corrsponding to the event
+ * @param event_data data corresponding to the event
  */
 static void event_handler(void *arg, esp_event_base_t event_base,
                           int32_t event_id, void *event_data) {

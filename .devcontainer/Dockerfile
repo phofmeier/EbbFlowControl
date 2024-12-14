@@ -14,6 +14,11 @@ RUN apt-get update \
   libpixman-1-0 \
   clang-tidy \
   clang-format \
+  # llvm \
+  # uncrustify \
+  cppcheck \
+  # iwyu \
+  # cpplint \
   && rm -rf /var/lib/apt/lists/*
 
 # QEMU

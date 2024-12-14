@@ -144,7 +144,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
       new_configuration_received_cb(event);
       break;
     }
-    ESP_LOGI(TAG, "Uknown data Received");
+    ESP_LOGI(TAG, "Unknown data Received");
     ESP_LOGI(TAG, "payload_format_indicator is %d",
              event->property->payload_format_indicator);
     ESP_LOGI(TAG, "response_topic is %.*s", event->property->response_topic_len,

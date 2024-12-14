@@ -22,7 +22,7 @@ menu "MQTT Application Configuration"
         default "efc/config/set"
         help
             Set the topic where new configurations are arrived.
-    
+
     config MQTT_CONFIG_SEND_TOPIC
         string "Topic for sending configs."
         default "efc/config"

@@ -3,6 +3,6 @@ menu "Configuration Application Config"
         int "Maximum number of pump cycles per day."
         default 24
         help
-            Set the maximum number of pump cycles per day. 
+            Set the maximum number of pump cycles per day.
 
 endmenu

@@ -48,7 +48,7 @@ void save_configuration();
  * @brief Set the configuration from a json string.
  *
  * All keys which are present in the json object are used to override the
- * current config. If a config value has no corrsponding key in the json file
+ * current config. If a config value has no corresponding key in the json file
  * the old value is not changed.
  *
  * @param json pointer to the json string

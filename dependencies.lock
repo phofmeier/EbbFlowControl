@@ -1,6 +1,8 @@
 dependencies:
   configuration:
-    dependencies: []
+    dependencies:
+    - name: idf
+      version: '>=4.1.0'
     source:
       path: /workspaces/EbbFlowControl/components/configuration
       type: local
@@ -12,6 +14,6 @@ dependencies:
 direct_dependencies:
 - configuration
 - idf
-manifest_hash: b79e07ad24902047c31e18e61559e1a2cfa7d024f46cab62a6c6f3bbcae98921
+manifest_hash: 3ce1322cf0e6b348d34915165ac68d8cd10b225848c0d2fd8402c40b0bb67bff
 target: esp32
 version: 2.0.0
