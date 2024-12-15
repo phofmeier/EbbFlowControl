@@ -83,6 +83,14 @@ void set_config_from_json(const char *json, const size_t json_length) {
     return;
   }
 
+  cJSON *id = cJSON_GetObjectItem(root, "id");
+  if (id != NULL && id->valueint != configuration.id) {
+    ESP_LOGI(TAG, "Configuration for different board id %u arrived.",
+             id->valueint);
+    cJSON_Delete(root);
+    return;
+  }
+
   cJSON *pump_cycles = cJSON_GetObjectItem(root, "pump_cycles");
   if (pump_cycles != NULL) {
     // Pump cycles key in json
