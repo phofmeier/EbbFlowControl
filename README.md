@@ -87,7 +87,7 @@ Setting the Pumping time to 120 seconds.
 
 Key: `id`
 
-The board id as `uint_8` value. A number between 0 and 255.
+The board id as `uint_8` value. A number between 0 and 255. If no board id is present all boards are updated. Else only the specified board is updated.
 
 ##### Nutrition Pump Configuration
 
@@ -96,7 +96,7 @@ Key: `pump_cycles`
 | Key                   | Typ                  | Description                                                                                                                                                                         |
 | --------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | pump_time_s           | unsigned short       | Seconds the nutrition pump is on                                                                                                                                                    |
-| nr_pump_cycles        | unsigned short       | The length of "times_minutes_per_day" list                                                                                                                                          |
+| nr_pump_cycles        | unsigned short       | The length of "times_minutes_per_day" list. Number needs to be between 0 and `MAX_NUMBER_PUMP_CYCLES_PER_DAY`(default: `24`)                                                        |
 | times_minutes_per_day | List[unsigned short] | The actual timepoints the pump needs to run during a day in minutes of the day in local time. e.g. `[8*60, 13*60, 20*60+30]` relates to running the pump at 08:00, 13:00 and 20:30. |
 
 ## Data Output
