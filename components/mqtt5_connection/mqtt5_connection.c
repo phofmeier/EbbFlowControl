@@ -17,9 +17,10 @@ static const char *TAG = "mqtt5";
  */
 void send_status_connected(esp_mqtt_client_handle_t client) {
   // build message
-  char *connected_message = "{\"id\": \"   \", \"connection\": \"connected\"}";
-  sprintf(&connected_message[6], "%3uhh", configuration.id);
-  static const int connected_message_length = 37;
+  char connected_message[39];
+  sprintf(connected_message, "{\"id\": %3u, \"connection\": \"connected\"}",
+          configuration.id);
+  static const int connected_message_length = 39;
 
   static esp_mqtt5_publish_property_config_t status_publish_property = {
       .payload_format_indicator = 1,
@@ -40,6 +41,9 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
   esp_mqtt5_client_delete_user_property(status_publish_property.user_property);
   status_publish_property.user_property = NULL;
   ESP_LOGI(TAG, "sent Status connected successful, msg_id=%d", msg_id);
+  ESP_LOGI(TAG, "sent Status connected successful, msg=%s", connected_message);
+  ESP_LOGI(TAG, "sent Status connected successful, topic=%s",
+           CONFIG_MQTT_STATUS_TOPIC);
 }
 
 /**
@@ -196,9 +200,10 @@ void mqtt5_conn_init() {
   };
 
   // Build last will message as json
-  char *last_will_message =
-      "{\"id\": \"   \", \"connection\": \"disconnected\"}";
-  sprintf(&last_will_message[6], "%3uhh", configuration.id);
+  ESP_LOGI(TAG, "Build last will %3u", configuration.id);
+  char last_will_message[42];
+  sprintf(last_will_message, "{\"id\": %3u, \"connection\": \"disconnected\"}",
+          configuration.id);
 
   esp_mqtt_client_config_t mqtt5_cfg = {
       .broker.address.uri = CONFIG_MQTT_BROKER_URI,
