@@ -13,19 +13,19 @@ menu "MQTT Application Configuration"
 
     config MQTT_STATUS_TOPIC
         string "TOPIC for the status channel."
-        default "efc/status"
+        default "ef/efc/static/status"
         help
             Set the topic which publishes the current status.
 
     config MQTT_CONFIG_RECEIVE_TOPIC
         string "Topic for receiving configs."
-        default "efc/config/set"
+        default "ef/efc/config/set"
         help
             Set the topic where new configurations are arrived.
 
     config MQTT_CONFIG_SEND_TOPIC
         string "Topic for sending configs."
-        default "efc/config"
+        default "ef/efc/static/config"
         help
             Set the topic on which the current config is published.
 
