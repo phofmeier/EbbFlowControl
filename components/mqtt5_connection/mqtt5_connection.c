@@ -17,7 +17,7 @@ static const char *TAG = "mqtt5";
  */
 void send_status_connected(esp_mqtt_client_handle_t client) {
   // build message
-  char *connected_message = "{id: \"   \", connection: \"connected\"}";
+  char *connected_message = "{\"id\": \"   \", \"connection\": \"connected\"}";
   sprintf(&connected_message[6], "%3uhh", configuration.id);
   static const int connected_message_length = 37;
 
@@ -196,7 +196,8 @@ void mqtt5_conn_init() {
   };
 
   // Build last will message as json
-  char *last_will_message = "{id: \"   \", connection: \"disconnected\"}";
+  char *last_will_message =
+      "{\"id\": \"   \", \"connection\": \"disconnected\"}";
   sprintf(&last_will_message[6], "%3uhh", configuration.id);
 
   esp_mqtt_client_config_t mqtt5_cfg = {
