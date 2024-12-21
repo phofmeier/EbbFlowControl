@@ -61,9 +61,9 @@ The most important configurations can be found in the main menu under `Applicati
 
 The current configuration is saved in a persistent storage such that it is kept after an power cycle.
 
-Always after connecting to an MQTT broker the current configuration is published via the `MQTT_CONFIG_SEND_TOPIC` (default: `efc/config`)
+Always after connecting to an MQTT broker the current configuration is published via the `MQTT_CONFIG_SEND_TOPIC` (default: `ef/efc/static/config`)
 
-The controller can be configured during runtime via a MQTT message. The message needs to be send to the `MQTT_CONFIG_RECEIVE_TOPIC`(default: `efc/config/set`). The message needs to be formatted as json. After each attempt to change the configuration the new configuration is published.
+The controller can be configured during runtime via a MQTT message. The message needs to be send to the `MQTT_CONFIG_RECEIVE_TOPIC`(default: `ef/efc/config/set`). The message needs to be formatted as json. After each attempt to change the configuration the new configuration is published.
 
 If the configuration of a specific controller needs to be changed the config file needs to contain a `id` field with the board id of the controller.
 
@@ -105,7 +105,7 @@ The controller sends current data via MQTT to monitor the functionality. To use 
 
 ### Current Configuration
 
-Channel: `MQTT_CONFIG_SEND_TOPIC` (default: `efc/config`)
+Channel: `MQTT_CONFIG_SEND_TOPIC` (default: `ef/efc/static/config`)
 
 Data-Format: json
 
@@ -113,7 +113,7 @@ See the paragraph about the [Configuration Values](#configuration-values) for mo
 
 ### Status
 
-Channel: `MQTT_STATUS_TOPIC` (default: `efc/status`)
+Channel: `MQTT_STATUS_TOPIC` (default: `ef/efc/static/status`)
 
 Data-Format: json
 

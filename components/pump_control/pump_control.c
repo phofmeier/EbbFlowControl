@@ -69,7 +69,7 @@ unsigned short get_cur_min_of_day() {
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 200
+#define STACK_SIZE 400
 
 /* Structure that will hold the TCB of the task being created. */
 
