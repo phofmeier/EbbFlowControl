@@ -113,4 +113,9 @@ void wifi_utils_init_sntp(void) {
   esp_sntp_config_t config =
       ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_WIFI_SNTP_POOL_SERVER);
   esp_netif_sntp_init(&config);
+  while (esp_netif_sntp_sync_wait(2000 / portTICK_PERIOD_MS) ==
+         ESP_ERR_TIMEOUT) {
+    ESP_LOGI(TAG, "Waiting for system time to be set... ");
+  }
+  ESP_LOGI(TAG, "System time synced.");
 }
