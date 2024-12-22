@@ -2,6 +2,7 @@
 
 #include "configuration.h"
 #include "driver/gpio.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
@@ -10,6 +11,11 @@
 #include <sys/time.h>
 #include <time.h>
 
+// Bitmask to change the configuration for the gpio pin
+#define PUMP_GPIO_BITMASK (1ULL << CONFIG_PUMP_GPIO_OUTPUT_PIN)
+
+static const char *TAG = "pump_control";
+
 /**
  * @brief Stop pumping
  *
@@ -17,7 +23,7 @@
 inline void stop_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0); }
 
 /**
- * @brief Stop pumping
+ * @brief Start pumping
  *
  */
 inline void start_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1); }
@@ -34,13 +40,13 @@ void configure_pump_output() {
   // set as output mode
   io_conf.mode = GPIO_MODE_OUTPUT;
   // bit mask of the pins that you want to set,e.g.GPIO18/19
-  io_conf.pin_bit_mask = CONFIG_PUMP_GPIO_OUTPUT_PIN;
+  io_conf.pin_bit_mask = PUMP_GPIO_BITMASK;
   // disable pull-down mode
   io_conf.pull_down_en = 0;
   // disable pull-up mode
   io_conf.pull_up_en = 0;
   // configure GPIO with the given settings
-  gpio_config(&io_conf);
+  ESP_ERROR_CHECK(gpio_config(&io_conf));
 }
 
 /**
@@ -69,22 +75,18 @@ unsigned short get_cur_min_of_day() {
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 400
+#define STACK_SIZE 2048
 
 /* Structure that will hold the TCB of the task being created. */
 
-StaticTask_t xTaskBuffer;
+static StaticTask_t xTaskBuffer;
 
 /* Buffer that the task being created will use as its stack. Note this is
    an array of StackType_t variables. The size of StackType_t is dependent on
    the RTOS port. */
-StackType_t xStack[STACK_SIZE];
+static StackType_t xStack[STACK_SIZE];
 
 void pump_control_task(void *pvParameters) {
-  // initialize pump
-  configure_pump_output();
-  stop_pump();
-
   // setup task
   const TickType_t xDelay = 1000 / portTICK_PERIOD_MS;
   signed short last_run = get_cur_min_of_day();
@@ -100,6 +102,7 @@ void pump_control_task(void *pvParameters) {
       if (time_diff_s >= configuration.pump_cycles.pump_time_s) {
         stop_pump();
         pumping = false;
+        ESP_LOGI(TAG, "Stop pump");
       }
     } else {
 
@@ -122,6 +125,8 @@ void pump_control_task(void *pvParameters) {
           last_run = times_minutes_per_day[i];
           time(&pumping_start_time); // update start time
           start_pump();
+          ESP_LOGI(TAG, "Start pump, curr_min=%i, i=%i, conf=%i", curr_min, i,
+                   times_minutes_per_day[i]);
           break;
         }
       }
@@ -132,13 +137,16 @@ void pump_control_task(void *pvParameters) {
 }
 
 void create_pump_control_task() {
+  // initialize GPIO
+  configure_pump_output();
+  stop_pump();
 
   // Static task without dynamic memory allocation
-  xTaskCreateStatic(
+  xTaskCreateStaticPinnedToCore(
       pump_control_task, "PumpControl", /* Task Name */
       STACK_SIZE,           /* Number of indexes in the xStack array. */
       NULL,                 /* No Parameter */
       tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
       xStack,               /* Array to use as the task's stack. */
-      &xTaskBuffer);        /* Variable to hold the task's data structure. */
+      &xTaskBuffer, 0);     /* Variable to hold the task's data structure. */
 }
