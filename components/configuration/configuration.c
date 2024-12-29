@@ -10,6 +10,8 @@
 #define CONFIG_PUMP_CYCLES_PUMP_TIME_S_NAME "PcPts"
 #define CONFIG_PUMP_CYCLES_NR_PUMP_CYCLES_NAME "PcNpc"
 #define CONFIG_PUMP_CYCLES_TIMES_MINUTES_PER_DAY_NAME "PcTmpd"
+// Maximum number of task to be notified if the config changes
+#define CONFIG_MAX_NUMBER_TASK_TO_NOTIFY 20
 
 static const char *TAG = "Config";
 
@@ -23,6 +25,11 @@ struct configuration_t configuration = {
             .times_minutes_per_day = {6 * 60, 12 * 60, 20 * 60},
         },
 };
+
+// Array containing all task handles which need to be notified
+TaskHandle_t tasks_to_notify[CONFIG_MAX_NUMBER_TASK_TO_NOTIFY];
+// Number of task handles in the array.
+uint16_t nr_task_to_notify = 0;
 
 void load_configuration() {
   ESP_LOGI(TAG, "Load Configuration");
@@ -119,6 +126,7 @@ void set_config_from_json(const char *json, const size_t json_length) {
   }
   cJSON_Delete(root);
   save_configuration();
+  handle_new_configuration_callbacks();
 }
 
 cJSON *get_config_as_json() {
@@ -140,4 +148,20 @@ cJSON *get_config_as_json() {
   }
 
   return root;
+}
+
+void handle_new_configuration_callbacks() {
+  for (size_t i = 0; i < nr_task_to_notify; i++) {
+    xTaskNotifyGive(tasks_to_notify[i]);
+  }
+}
+
+esp_err_t add_notify_for_new_config(TaskHandle_t task) {
+  if (nr_task_to_notify >= CONFIG_MAX_NUMBER_TASK_TO_NOTIFY) {
+    return ESP_ERR_NO_MEM;
+  }
+
+  tasks_to_notify[nr_task_to_notify] = task;
+  nr_task_to_notify++;
+  return ESP_OK;
 }

@@ -2,6 +2,9 @@
 #define COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION
 
 #include "cJSON.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
 #include "sdkconfig.h"
 #include <stddef.h>
 
@@ -64,5 +67,21 @@ void set_config_from_json(const char *json, size_t json_length);
  * @return cJSON* Pointer to a new json object
  */
 cJSON *get_config_as_json();
+
+/**
+ * @brief handle all callbacks after the configuration changed.
+ *
+ */
+void handle_new_configuration_callbacks();
+
+/**
+ * @brief Add a task handle which is notified by `xTaskNotifyGive` when the
+ * configuration is changed.
+ *
+ * @param task the task handle of the task to notify
+ * @return esp_err_t `ESP_ERR_NO_MEM` if more than
+ * `CONFIG_MAX_NUMBER_TASK_TO_NOTIFY` are tried to be added else ESP_OK
+ */
+esp_err_t add_notify_for_new_config(TaskHandle_t task);
 
 #endif /* COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION */

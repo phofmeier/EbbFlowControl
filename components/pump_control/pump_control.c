@@ -3,10 +3,8 @@
 #include "configuration.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-#include "freertos/task.h"
 #include "sdkconfig.h"
+#include <math.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
@@ -86,26 +84,40 @@ static StaticTask_t xTaskBuffer;
    the RTOS port. */
 static StackType_t xStack[STACK_SIZE];
 
+/**
+ * @brief Enum with the current state of the pump controller.
+ *
+ */
+enum State {
+  PUMPING, // Currently pumping
+  WAITING, // Waiting for next pump cycle
+};
+
 void pump_control_task(void *pvParameters) {
   // setup task
-  const TickType_t xDelay = 1000 / portTICK_PERIOD_MS;
   signed short last_run = get_cur_min_of_day();
-  bool pumping = false;
+  enum State state = WAITING;
   time_t pumping_start_time;
   time_t now;
 
   for (;;) {
-    if (pumping) {
-      // check if we need to stop
+    switch (state) {
+    case PUMPING:
       time(&now);
       const double time_diff_s = difftime(now, pumping_start_time);
       if (time_diff_s >= configuration.pump_cycles.pump_time_s) {
         stop_pump();
-        pumping = false;
+        state = WAITING;
         ESP_LOGI(TAG, "Stop pump");
+      } else {
+        // wait for stop
+        const int wait_time_s =
+            floor(configuration.pump_cycles.pump_time_s - time_diff_s);
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time_s * 1e3));
       }
-    } else {
+      break;
 
+    case WAITING:
       const unsigned short curr_min = get_cur_min_of_day();
       const unsigned short nr_pump_cycles =
           configuration.pump_cycles.nr_pump_cycles;
@@ -115,38 +127,48 @@ void pump_control_task(void *pvParameters) {
         // Next day -> reset last run
         last_run = -1;
       }
-
+      // initialize with waiting for next day
+      int minutes_to_next_start = 24 * 60 - curr_min;
       for (size_t i = 0; i < nr_pump_cycles; i++) {
         // Check each possible config for starting
-        if (times_minutes_per_day[i] > last_run &&
-            curr_min >= times_minutes_per_day[i]) {
-          // current config never run and its time -> start pump
-          pumping = true;
-          last_run = times_minutes_per_day[i];
-          time(&pumping_start_time); // update start time
-          start_pump();
-          ESP_LOGI(TAG, "Start pump, curr_min=%i, i=%i, conf=%i", curr_min, i,
-                   times_minutes_per_day[i]);
-          break;
+        if (times_minutes_per_day[i] > last_run) {
+          // This config was not run yet
+          const int min_to_start = times_minutes_per_day[i] - curr_min;
+          if (minutes_to_next_start > min_to_start) {
+            minutes_to_next_start = min_to_start;
+          }
+          if (curr_min >= times_minutes_per_day[i]) {
+            // current config never run and its time -> start pump
+            state = PUMPING;
+            last_run = times_minutes_per_day[i];
+            time(&pumping_start_time); // update start time
+            start_pump();
+            ESP_LOGI(TAG, "Start pump, curr_min=%i, i=%i, conf=%i", curr_min, i,
+                     times_minutes_per_day[i]);
+            break;
+          }
         }
       }
+      // Wait for next start
+      minutes_to_next_start = fmax(0, minutes_to_next_start);
+      ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(minutes_to_next_start * 60 * 1e3));
+      break;
     }
-
-    vTaskDelay(xDelay); // wait for next cycle
   }
 }
 
-void create_pump_control_task() {
+TaskHandle_t create_pump_control_task() {
   // initialize GPIO
   configure_pump_output();
   stop_pump();
 
   // Static task without dynamic memory allocation
-  xTaskCreateStaticPinnedToCore(
+  TaskHandle_t task_handle = xTaskCreateStatic(
       pump_control_task, "PumpControl", /* Task Name */
       STACK_SIZE,           /* Number of indexes in the xStack array. */
       NULL,                 /* No Parameter */
       tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
       xStack,               /* Array to use as the task's stack. */
-      &xTaskBuffer, 0);     /* Variable to hold the task's data structure. */
+      &xTaskBuffer);        /* Variable to hold the task's data structure. */
+  return task_handle;
 }
