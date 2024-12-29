@@ -28,5 +28,5 @@ void app_main(void) {
   // MQTT Setup
   mqtt5_conn_init();
   // Create control tasks
-  create_pump_control_task();
+  ESP_ERROR_CHECK(add_notify_for_new_config(create_pump_control_task()));
 }
