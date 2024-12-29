@@ -112,8 +112,9 @@ void pump_control_task(void *pvParameters) {
       } else {
         // wait for stop
         const int wait_time_s =
-            floor(configuration.pump_cycles.pump_time_s - time_diff_s);
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time_s * 1e3));
+            floor((configuration.pump_cycles.pump_time_s - time_diff_s) * 0.9);
+        ESP_LOGI(TAG, "Wait for stop for %i s", wait_time_s);
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time_s * 1e3 + 100));
       }
       break;
 
@@ -137,7 +138,7 @@ void pump_control_task(void *pvParameters) {
           if (minutes_to_next_start > min_to_start) {
             minutes_to_next_start = min_to_start;
           }
-          if (curr_min >= times_minutes_per_day[i]) {
+          if (min_to_start <= 0) {
             // current config never run and its time -> start pump
             state = PUMPING;
             last_run = times_minutes_per_day[i];
@@ -150,8 +151,14 @@ void pump_control_task(void *pvParameters) {
         }
       }
       // Wait for next start
-      minutes_to_next_start = fmax(0, minutes_to_next_start);
-      ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(minutes_to_next_start * 60 * 1e3));
+      if (state == WAITING) {
+        minutes_to_next_start = floor(minutes_to_next_start * 0.9);
+        minutes_to_next_start = fmax(0, minutes_to_next_start);
+        ESP_LOGI(TAG, "Wait for stop for %i min", minutes_to_next_start);
+        // Wait for minimum 10 second
+        ulTaskNotifyTake(
+            pdTRUE, pdMS_TO_TICKS((minutes_to_next_start * 60 + 10) * 1e3));
+      }
       break;
     }
   }
