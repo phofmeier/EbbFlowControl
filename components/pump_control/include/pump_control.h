@@ -13,11 +13,17 @@
 void pump_control_task(void *pvParameters);
 
 /**
+ * @brief Configure the GPIO output for the pump
+ *
+ */
+void configure_pump_output();
+
+/**
  * @brief Create and start the task for controlling the pump.
  *
- * The pump is activated for a specific amount of seconds. This happens multiple
- * times per day. The time and times can be configured in the global
- * configuration.
+ * The pump is activated for a specific amount of seconds. This happens
+ * multiple times per day. The time and times can be configured in the
+ * global configuration.
  *
  */
 TaskHandle_t create_pump_control_task();

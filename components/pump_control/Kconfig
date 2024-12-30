@@ -1,7 +1,7 @@
 menu "Pump Application Config"
     config PUMP_GPIO_OUTPUT_PIN
         int "GPIO Pin of the Pump"
-        default 2
+        default 4
         help
             Set the pin number to activate the pump
 
