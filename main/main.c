@@ -8,6 +8,8 @@
 #include "wifi_utils.h"
 
 void app_main(void) {
+  // Configure GPIOS
+  configure_pump_output();
   // Initialize NVS
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||

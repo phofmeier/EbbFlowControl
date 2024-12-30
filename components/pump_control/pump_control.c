@@ -18,13 +18,13 @@ static const char *TAG = "pump_control";
  * @brief Stop pumping
  *
  */
-inline void stop_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0); }
+inline void stop_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1); }
 
 /**
  * @brief Start pumping
  *
  */
-inline void start_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1); }
+inline void start_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0); }
 
 /**
  * @brief Configure the GPIO output for the pump
@@ -45,6 +45,7 @@ void configure_pump_output() {
   io_conf.pull_up_en = 0;
   // configure GPIO with the given settings
   ESP_ERROR_CHECK(gpio_config(&io_conf));
+  stop_pump();
 }
 
 /**
@@ -167,7 +168,6 @@ void pump_control_task(void *pvParameters) {
 TaskHandle_t create_pump_control_task() {
   // initialize GPIO
   configure_pump_output();
-  stop_pump();
 
   // Static task without dynamic memory allocation
   TaskHandle_t task_handle = xTaskCreateStatic(
