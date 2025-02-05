@@ -1,7 +1,7 @@
 #include "wifi_utils.h"
 
 #include "esp_bit_defs.h"
-#include "esp_err.h"
+
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_netif_sntp.h"
@@ -87,6 +87,7 @@ void wifi_utils_init(void) {
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
   ESP_ERROR_CHECK(esp_wifi_start());
   ESP_LOGI(TAG, "wifi_init_sta finished.");
+  esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
 
   /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or
    * connection failed for the maximum number of re-tries (WIFI_FAIL_BIT). The
@@ -118,4 +119,8 @@ void wifi_utils_init_sntp(void) {
     ESP_LOGI(TAG, "Waiting for system time to be set... ");
   }
   ESP_LOGI(TAG, "System time synced.");
+}
+
+esp_err_t wifi_utils_get_connection_strength(int *rssi_level) {
+  return esp_wifi_sta_get_rssi(rssi_level);
 }

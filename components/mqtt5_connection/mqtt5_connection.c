@@ -3,6 +3,7 @@
 #include "config_connection.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "wifi_utils.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -17,10 +18,14 @@ static const char *TAG = "mqtt5";
  */
 void send_status_connected(esp_mqtt_client_handle_t client) {
   // build message
-  char connected_message[39];
-  sprintf(connected_message, "{\"id\": %3u, \"connection\": \"connected\"}",
-          configuration.id);
-  static const int connected_message_length = 39;
+  int rssi_level = -100;
+  ESP_ERROR_CHECK(wifi_utils_get_connection_strength(&rssi_level));
+
+  char connected_message[59];
+  sprintf(connected_message,
+          "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": %i}",
+          configuration.id, rssi_level);
+  static const int connected_message_length = 59;
 
   static esp_mqtt5_publish_property_config_t status_publish_property = {
       .payload_format_indicator = 1,

@@ -11,9 +11,18 @@ dependencies:
     source:
       type: idf
     version: 5.3.1
+  wifi_utils:
+    dependencies:
+    - name: idf
+      version: '>=4.1.0'
+    source:
+      path: /workspaces/EbbFlowControl/components/wifi_utils
+      type: local
+    version: '*'
 direct_dependencies:
 - configuration
 - idf
-manifest_hash: 3ce1322cf0e6b348d34915165ac68d8cd10b225848c0d2fd8402c40b0bb67bff
+- wifi_utils
+manifest_hash: 40e8a7bddf59c9341eec9e00fc498a8aadd979cc943fa0c9323953d0948466d3
 target: esp32
 version: 2.0.0

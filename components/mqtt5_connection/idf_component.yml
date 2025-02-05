@@ -16,3 +16,5 @@ dependencies:
   #   public: true
   configuration:
     path: "../configuration/"
+  wifi_utils:
+    path: "../wifi_utils/"
