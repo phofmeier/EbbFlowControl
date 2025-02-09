@@ -121,7 +121,8 @@ Data:
 | Key | Typ | Description |
 |---|---|---|
 | id | uint_8 | Id of the specific board Integer between 0 and 255 |
-| connection | string| Current connection status to the MQTT Broker. "connected" or "disconnected" |
+| connection | string | Current connection status to the MQTT Broker. "connected" or "disconnected" |
+| rssi_level | int | Connection strength of the Wifi connection. -100 if an error occurs. |
 
 Example:
 
