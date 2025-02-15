@@ -271,3 +271,6 @@ WhitespaceSensitiveMacros:
   - PP_STRINGIZE
   - STRINGIZE
 ...
+---
+Language: Json
+BasedOnStyle: llvm
