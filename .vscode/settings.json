@@ -8,7 +8,13 @@
   "editor.defaultFormatter": "ms-vscode.cpptools",
   "C_Cpp.formatting": "clangFormat",
   "C_Cpp.clang_format_fallbackStyle": "",
-  "cSpell.words": ["endmenu", "LOGD", "LOGI", "mqtt", "sntp"],
+  "cSpell.words": [
+    "endmenu",
+    "LOGD",
+    "LOGI",
+    "mqtt",
+    "sntp"
+  ],
   "files.associations": {
     "config_connection.h": "c",
     "mqtt5_connection.h": "c"

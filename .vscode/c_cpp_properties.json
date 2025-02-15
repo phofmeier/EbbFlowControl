@@ -2,7 +2,10 @@
   "configurations": [
     {
       "name": "Linux",
-      "includePath": ["${workspaceFolder}/**", "${env:IDF_PATH}/**"],
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${env:IDF_PATH}/**"
+      ],
       "defines": [],
       "compilerPath": "/usr/bin/clang-14",
       "cStandard": "c17",
