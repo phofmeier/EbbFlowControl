@@ -27,10 +27,21 @@ repos:
   - repo: https://github.com/pocc/pre-commit-hooks
     rev: v1.3.5
     hooks:
-      - id: clang-format
+      # - id: clang-format
       # - id: clang-tidy
       # - id: oclint
       # - id: uncrustify
       - id: cppcheck
+        args:
+          [
+            "--suppress=unmatchedSuppression",
+            "--suppress=missingIncludeSystem",
+            "--suppress=unusedFunction",
+            "--suppress=missingInclude",
+          ]
       # - id: cpplint
       # - id: include-what-you-use
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: "v19.1.7" # Use the sha / tag you want to point at
+    hooks:
+      - id: clang-format
