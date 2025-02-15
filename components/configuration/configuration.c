@@ -84,13 +84,13 @@ void save_configuration() {
 }
 
 void set_config_from_json(const char *json, const size_t json_length) {
-  cJSON *root = cJSON_ParseWithLength(json, json_length);
+  const cJSON *root = cJSON_ParseWithLength(json, json_length);
   if (root == NULL) {
     ESP_LOGI(TAG, "Can not parse config json");
     return;
   }
 
-  cJSON *id = cJSON_GetObjectItem(root, "id");
+  const cJSON *id = cJSON_GetObjectItem(root, "id");
   if (id != NULL && id->valueint != configuration.id) {
     ESP_LOGI(TAG, "Configuration for different board id %u arrived.",
              id->valueint);
@@ -98,16 +98,17 @@ void set_config_from_json(const char *json, const size_t json_length) {
     return;
   }
 
-  cJSON *pump_cycles = cJSON_GetObjectItem(root, "pump_cycles");
+  const cJSON *pump_cycles = cJSON_GetObjectItem(root, "pump_cycles");
   if (pump_cycles != NULL) {
     // Pump cycles key in json
-    cJSON *pump_time_s = cJSON_GetObjectItem(pump_cycles, "pump_time_s");
+    const cJSON *pump_time_s = cJSON_GetObjectItem(pump_cycles, "pump_time_s");
     if (pump_time_s != NULL) {
       configuration.pump_cycles.pump_time_s = pump_time_s->valueint;
     }
 
-    cJSON *nr_pump_cycles = cJSON_GetObjectItem(pump_cycles, "nr_pump_cycles");
-    cJSON *times_minutes_per_day =
+    const cJSON *nr_pump_cycles =
+        cJSON_GetObjectItem(pump_cycles, "nr_pump_cycles");
+    const cJSON *times_minutes_per_day =
         cJSON_GetObjectItem(pump_cycles, "times_minutes_per_day");
 
     if (nr_pump_cycles != NULL && times_minutes_per_day != NULL) {
