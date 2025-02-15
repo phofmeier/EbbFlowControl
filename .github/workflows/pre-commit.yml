@@ -15,7 +15,7 @@ jobs:
       - name: Checkout (GitHub)
         uses: actions/checkout@v4
       - name: Install dependencies
-        run: sudo apt-get install -y clang-tidy clang-format cppcheck
+        run: sudo apt install -y clang-tidy clang-format cppcheck
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: --show-diff-on-failure --all-files
