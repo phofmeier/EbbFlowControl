@@ -1,9 +1,15 @@
 menu "Wifi Application Config"
     config WIFI_MAXIMUM_RETRY
         int "Maximum attempts of WIFI connection retries."
-        default -1
+        default 2
         help
             Set the maximum number of attempts to try to connect to the wifi. (Set to -1 for infinite attempts.)
+
+    config WIFI_WAIT_TIME_BETWEEN_RETRY_MS
+        int "Time to wait between WIFI connection retries in ms."
+        default 600000
+        help
+            Set the time to wait between retries to connect to the wifi. (Default 10 min)
 
     config WIFI_SNTP_POOL_SERVER
         string "URL to the SNTP server."

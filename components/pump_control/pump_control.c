@@ -174,7 +174,7 @@ TaskHandle_t create_pump_control_task() {
       pump_control_task, "PumpControl", /* Task Name */
       STACK_SIZE,           /* Number of indexes in the xStack array. */
       NULL,                 /* No Parameter */
-      tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
+      tskIDLE_PRIORITY + 2, /* Priority at which the task is created. */
       xStack,               /* Array to use as the task's stack. */
       &xTaskBuffer);        /* Variable to hold the task's data structure. */
   return task_handle;

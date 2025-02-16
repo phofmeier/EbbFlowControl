@@ -27,8 +27,10 @@ void app_main(void) {
   // Initialize and connect to Wifi
   wifi_utils_init();
   wifi_utils_init_sntp();
+  wifi_utils_create_connection_checker_task();
   // MQTT Setup
   mqtt5_conn_init();
+  mqtt5_create_connection_checker_task();
   // Create control tasks
   ESP_ERROR_CHECK(add_notify_for_new_config(create_pump_control_task()));
 }
