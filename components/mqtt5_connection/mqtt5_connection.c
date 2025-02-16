@@ -36,11 +36,11 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
   int rssi_level = -100;
   ESP_ERROR_CHECK(wifi_utils_get_connection_strength(&rssi_level));
 
-  char connected_message[59];
+  char connected_message[58];
   sprintf(connected_message,
           "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": %i}",
           configuration.id, rssi_level);
-  static const int connected_message_length = 59;
+  static const int connected_message_length = 58;
 
   static esp_mqtt5_publish_property_config_t status_publish_property = {
       .payload_format_indicator = 1,
@@ -144,10 +144,10 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
         disconnect_counter_ > CONFIG_MQTT_MAX_RECONNECT_ATTEMPTS) {
       xEventGroupSetBits(s_mqtt5_event_group_, MQTT5_CONNECTION_FAILED_BIT);
     }
-    disconnect_counter_++; // Increased after each disconnect.
 
-    ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+    ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED counter: %i", disconnect_counter_);
     print_user_property(event->property->user_property);
+    disconnect_counter_++; // Increased after each disconnect.
     break;
   case MQTT_EVENT_SUBSCRIBED:
     ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -211,6 +211,8 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
 }
 
 void mqtt5_conn_init() {
+  s_mqtt5_event_group_ = xEventGroupCreate();
+
   esp_mqtt5_connection_property_config_t connect_property = {
       .session_expiry_interval = 10,
       .maximum_packet_size = 1024,
@@ -282,7 +284,7 @@ void mqtt5_check_connection_task(void *pvParameters) {
 }
 
 /* Stack Size for the connection check task*/
-#define STACK_SIZE 512
+#define STACK_SIZE 2048
 
 /* Structure that will hold the TCB of the task being created. */
 static StaticTask_t xTaskBuffer;
