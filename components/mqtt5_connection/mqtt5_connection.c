@@ -214,6 +214,7 @@ void mqtt5_conn_init() {
       .broker.address.uri = CONFIG_MQTT_BROKER_URI,
       .session.protocol_ver = MQTT_PROTOCOL_V_5,
       .network.disable_auto_reconnect = false,
+      .network.reconnect_timeout_ms = CONFIG_MQTT_TIMEOUT_RECONNECT_MS,
       .credentials.username = CONFIG_MQTT_USERNAME,
       .credentials.authentication.password = CONFIG_MQTT_PASSWORD,
       .session.last_will.topic = CONFIG_MQTT_STATUS_TOPIC,
