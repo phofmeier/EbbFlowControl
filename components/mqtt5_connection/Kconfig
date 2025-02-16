@@ -13,9 +13,21 @@ menu "MQTT Application Configuration"
 
     config MQTT_TIMEOUT_RECONNECT_MS
         int "Time to wait between reconnect attempts in ms."
-        default 30000
+        default 10000
         help
-            Set the time to wait between reconnect attempts to the MQTT broker. (Default 30 s)
+            Set the time to wait between reconnect attempts to the MQTT broker. (Default 10 s)
+
+    config MQTT_MAX_RECONNECT_ATTEMPTS
+        int "Maximum attempts of reconnecting to the MQTT broker."
+        default 5
+        help
+            Set the maximum number of attempts to try to reconnect to the MQTT broker. (Set to -1 for infinite attempts.)
+
+    config MQTT_WAIT_TIME_BETWEEN_RETRY_MS
+        int "Time to wait between reconnect attempts in ms."
+        default 600000
+        help
+            Set the time to wait between retries to connect to the MQTT broker. (Default 10 min)
 
     config MQTT_STATUS_TOPIC
         string "TOPIC for the status channel."

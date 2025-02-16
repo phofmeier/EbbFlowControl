@@ -93,6 +93,7 @@ void wifi_utils_init(void) {
 
 void wifi_utils_connect() {
   // Reset the retry counter
+  xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
   s_retry_num = 0;
   ESP_ERROR_CHECK(esp_wifi_connect());
 }
