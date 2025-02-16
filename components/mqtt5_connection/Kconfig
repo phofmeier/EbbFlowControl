@@ -11,6 +11,12 @@ menu "MQTT Application Configuration"
         help
             Set the password to connect to the MQTT broker.
 
+    config MQTT_TIMEOUT_RECONNECT_MS
+        int "Time to wait between reconnect attempts in ms."
+        default 30000
+        help
+            Set the time to wait between reconnect attempts to the MQTT broker. (Default 30 s)
+
     config MQTT_STATUS_TOPIC
         string "TOPIC for the status channel."
         default "ef/efc/static/status"
