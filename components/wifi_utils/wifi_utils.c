@@ -88,14 +88,14 @@ void wifi_utils_init(void) {
   ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));
   ESP_LOGI(TAG, "wifi_init_sta finished.");
   s_wifi_event_group = xEventGroupCreate();
-  ESP_ERROR_CHECK(wifi_utils_connect_wifi_blocking());
+  ESP_ERROR_CHECK_WITHOUT_ABORT(wifi_utils_connect_wifi_blocking());
 }
 
 void wifi_utils_connect() {
   // Reset the retry counter
   xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT);
   s_retry_num = 0;
-  ESP_ERROR_CHECK(esp_wifi_connect());
+  ESP_ERROR_CHECK(esp_wifi_start());
 }
 
 esp_err_t wifi_utils_connect_wifi_blocking() {
@@ -153,7 +153,7 @@ esp_err_t wifi_utils_get_connection_strength(int *rssi_level) {
 }
 
 /* Stack Size for the connection check task*/
-#define STACK_SIZE 512
+#define STACK_SIZE 2048
 
 /* Structure that will hold the TCB of the task being created. */
 static StaticTask_t xTaskBuffer;
