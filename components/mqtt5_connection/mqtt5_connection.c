@@ -3,6 +3,9 @@
 #include "config_connection.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include "freertos/task.h"
 #include "wifi_utils.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -10,6 +13,18 @@
 #include <string.h>
 
 static const char *TAG = "mqtt5";
+
+/** Number of current connection attempts.*/
+static int disconnect_counter_ = 0;
+
+/** FreeRTOS event group to signal when we are connected*/
+static EventGroupHandle_t s_mqtt5_event_group_;
+
+/** Bit to signal that the connection failed.*/
+#define MQTT5_CONNECTION_FAILED_BIT BIT0
+
+/** client handle of the connection  */
+esp_mqtt_client_handle_t client_;
 
 /**
  * @brief Publish message that the status is connected.
@@ -117,6 +132,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
 
   switch ((esp_mqtt_event_id_t)event_id) {
   case MQTT_EVENT_CONNECTED:
+    disconnect_counter_ = 0;
     ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
     print_user_property(event->property->user_property);
     subscribe_to_config_channel(client);
@@ -124,6 +140,12 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     send_current_configuration(client);
     break;
   case MQTT_EVENT_DISCONNECTED:
+    if (CONFIG_MQTT_MAX_RECONNECT_ATTEMPTS > 0 &&
+        disconnect_counter_ > CONFIG_MQTT_MAX_RECONNECT_ATTEMPTS) {
+      xEventGroupSetBits(s_mqtt5_event_group_, MQTT5_CONNECTION_FAILED_BIT);
+    }
+    disconnect_counter_++; // Increased after each disconnect.
+
     ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
     print_user_property(event->property->user_property);
     break;
@@ -224,21 +246,61 @@ void mqtt5_conn_init() {
       .session.last_will.retain = true,
   };
 
-  esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt5_cfg);
+  client_ = esp_mqtt_client_init(&mqtt5_cfg);
 
   /* Set connection properties and user properties */
   esp_mqtt5_client_set_user_property(&connect_property.user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
   esp_mqtt5_client_set_user_property(&connect_property.will_user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
-  esp_mqtt5_client_set_connect_property(client, &connect_property);
+  esp_mqtt5_client_set_connect_property(client_, &connect_property);
 
   // Need to delete user property
   esp_mqtt5_client_delete_user_property(connect_property.user_property);
   esp_mqtt5_client_delete_user_property(connect_property.will_user_property);
 
   // Register event handler
-  esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt5_event_handler,
+  esp_mqtt_client_register_event(client_, ESP_EVENT_ANY_ID, mqtt5_event_handler,
                                  NULL);
-  esp_mqtt_client_start(client);
+  ESP_ERROR_CHECK(esp_mqtt_client_start(client_));
+}
+
+void mqtt5_check_connection_task(void *pvParameters) {
+  for (;;) {
+    EventBits_t bits =
+        xEventGroupWaitBits(s_mqtt5_event_group_, MQTT5_CONNECTION_FAILED_BIT,
+                            pdFALSE, pdFALSE, portMAX_DELAY);
+    if (bits & MQTT5_CONNECTION_FAILED_BIT) {
+      ESP_LOGI(TAG, "MQTT connection failed. Wait before retrying.");
+      ESP_ERROR_CHECK(esp_mqtt_client_stop(client_));
+      vTaskDelay(pdMS_TO_TICKS(CONFIG_MQTT_WAIT_TIME_BETWEEN_RETRY_MS));
+      disconnect_counter_ = 0;
+      xEventGroupClearBits(s_mqtt5_event_group_, MQTT5_CONNECTION_FAILED_BIT);
+      ESP_ERROR_CHECK(esp_mqtt_client_start(client_));
+    }
+  }
+}
+
+/* Stack Size for the connection check task*/
+#define STACK_SIZE 512
+
+/* Structure that will hold the TCB of the task being created. */
+static StaticTask_t xTaskBuffer;
+
+/* Buffer that the task being created will use as its stack. Note this is
+   an array of StackType_t variables. The size of StackType_t is dependent on
+   the RTOS port. */
+static StackType_t xStack[STACK_SIZE];
+
+TaskHandle_t mqtt5_create_connection_checker_task() {
+  // Static task without dynamic memory allocation
+  TaskHandle_t task_handle = xTaskCreateStatic(
+      mqtt5_check_connection_task, "MQTT5ConnectionChecker", /* Task Name */
+      STACK_SIZE,           /* Number of indexes in the xStack array. */
+      NULL,                 /* No Parameter */
+      tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
+      xStack,               /* Array to use as the task's stack. */
+      &xTaskBuffer);        /* Variable to hold the task's data structure.
+                             */
+  return task_handle;
 }
