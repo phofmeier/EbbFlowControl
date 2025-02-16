@@ -85,14 +85,23 @@ void wifi_utils_init(void) {
   };
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-  ESP_ERROR_CHECK(esp_wifi_start());
+  ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));
   ESP_LOGI(TAG, "wifi_init_sta finished.");
-  esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+  s_wifi_event_group = xEventGroupCreate();
+  ESP_ERROR_CHECK(wifi_utils_connect_wifi_blocking());
+}
 
+void wifi_utils_connect() {
+  // Reset the retry counter
+  s_retry_num = 0;
+  ESP_ERROR_CHECK(esp_wifi_connect());
+}
+
+esp_err_t wifi_utils_connect_wifi_blocking() {
+  wifi_utils_connect();
   /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or
    * connection failed for the maximum number of re-tries (WIFI_FAIL_BIT). The
    * bits are set by event_handler() (see above) */
-  s_wifi_event_group = xEventGroupCreate();
   EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
                                          WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                          pdFALSE, pdFALSE, portMAX_DELAY);
@@ -102,11 +111,28 @@ void wifi_utils_init(void) {
   if (bits & WIFI_CONNECTED_BIT) {
     ESP_LOGI(TAG, "connected to ap SSID:%s password:%s", CONFIG_WIFI_SSID,
              CONFIG_WIFI_PASSWORD);
-  } else if (bits & WIFI_FAIL_BIT) {
+    return ESP_OK;
+  }
+
+  if (bits & WIFI_FAIL_BIT) {
     ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s", CONFIG_WIFI_SSID,
              CONFIG_WIFI_PASSWORD);
   } else {
     ESP_LOGE(TAG, "UNEXPECTED EVENT");
+  }
+
+  return ESP_FAIL;
+}
+
+void wifi_utils_check_connection_task(void *pvParameters) {
+  for (;;) {
+    EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_FAIL_BIT,
+                                           pdFALSE, pdFALSE, portMAX_DELAY);
+    if (bits & WIFI_FAIL_BIT) {
+      ESP_LOGI(TAG, "Wifi connection failed. Wait before retrying.");
+      vTaskDelay(pdMS_TO_TICKS(CONFIG_WIFI_WAIT_TIME_BETWEEN_RETRY_MS));
+      wifi_utils_connect();
+    }
   }
 }
 
@@ -123,4 +149,28 @@ void wifi_utils_init_sntp(void) {
 
 esp_err_t wifi_utils_get_connection_strength(int *rssi_level) {
   return esp_wifi_sta_get_rssi(rssi_level);
+}
+
+/* Stack Size for the connection check task*/
+#define STACK_SIZE 512
+
+/* Structure that will hold the TCB of the task being created. */
+static StaticTask_t xTaskBuffer;
+
+/* Buffer that the task being created will use as its stack. Note this is
+   an array of StackType_t variables. The size of StackType_t is dependent on
+   the RTOS port. */
+static StackType_t xStack[STACK_SIZE];
+
+TaskHandle_t wifi_utils_create_connection_checker_task() {
+  // Static task without dynamic memory allocation
+  TaskHandle_t task_handle = xTaskCreateStatic(
+      wifi_utils_check_connection_task, "ConnectionChecker", /* Task Name */
+      STACK_SIZE,           /* Number of indexes in the xStack array. */
+      NULL,                 /* No Parameter */
+      tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
+      xStack,               /* Array to use as the task's stack. */
+      &xTaskBuffer);        /* Variable to hold the task's data structure.
+                             */
+  return task_handle;
 }
