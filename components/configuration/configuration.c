@@ -84,7 +84,7 @@ void save_configuration() {
 }
 
 void set_config_from_json(const char *json, const size_t json_length) {
-  const cJSON *root = cJSON_ParseWithLength(json, json_length);
+  cJSON *root = cJSON_ParseWithLength(json, json_length);
   if (root == NULL) {
     ESP_LOGI(TAG, "Can not parse config json");
     return;
