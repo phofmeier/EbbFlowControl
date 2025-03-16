@@ -2,6 +2,7 @@
 
 #include "esp_bit_defs.h"
 
+#include "configuration.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_netif_sntp.h"
@@ -10,6 +11,8 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
+#include <sys/time.h>
+#include <time.h>
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -130,6 +133,7 @@ void wifi_utils_check_connection_task(void *pvParameters) {
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_FAIL_BIT,
                                            pdFALSE, pdFALSE, portMAX_DELAY);
     if (bits & WIFI_FAIL_BIT) {
+      esp_wifi_stop();
       ESP_LOGI(TAG, "Wifi connection failed. Wait before retrying.");
       vTaskDelay(pdMS_TO_TICKS(CONFIG_WIFI_WAIT_TIME_BETWEEN_RETRY_MS));
       wifi_utils_connect();
@@ -138,12 +142,43 @@ void wifi_utils_check_connection_task(void *pvParameters) {
 }
 
 void wifi_utils_init_sntp(void) {
+  setenv("TZ", CONFIG_LOCAL_TIME_ZONE, 1);
+  tzset();
+
+  struct tm timeinfo = {
+      .tm_sec = 0,
+      .tm_min = 0,
+      .tm_hour = 0,
+      .tm_mday = 1,
+      .tm_mon = 1,
+      .tm_year = 2025,
+  };
+  // initialize time as 10 min before the first pump cycle.
+  // just in case the time is not set over SNTP we start pumping soon.
+  const unsigned short nr_pump_cycles =
+      configuration.pump_cycles.nr_pump_cycles;
+  if (nr_pump_cycles > 0) {
+    const int first_pump_time_minutes_per_day =
+        ((24 * 60) +
+         (configuration.pump_cycles.times_minutes_per_day[0] - 10)) %
+        (24 * 60);
+    const int hours = first_pump_time_minutes_per_day / 60;
+    const int minutes = first_pump_time_minutes_per_day % 60;
+    timeinfo.tm_hour = hours;
+    timeinfo.tm_min = minutes;
+  }
+
+  struct timeval initial_time = {.tv_sec = mktime(&timeinfo), .tv_usec = 0};
+  settimeofday(&initial_time, NULL);
+
   esp_sntp_config_t config =
       ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_WIFI_SNTP_POOL_SERVER);
   esp_netif_sntp_init(&config);
-  while (esp_netif_sntp_sync_wait(2000 / portTICK_PERIOD_MS) ==
-         ESP_ERR_TIMEOUT) {
-    ESP_LOGI(TAG, "Waiting for system time to be set... ");
+  while (esp_netif_sntp_sync_wait(CONFIG_WIFI_SNTP_INIT_WAIT_TIME_MS /
+                                  portTICK_PERIOD_MS) == ESP_ERR_TIMEOUT) {
+    ESP_LOGE(TAG, "Could not set time over SNTP. Tried for %d ms",
+             CONFIG_WIFI_SNTP_INIT_WAIT_TIME_MS);
+    return;
   }
   ESP_LOGI(TAG, "System time synced.");
 }

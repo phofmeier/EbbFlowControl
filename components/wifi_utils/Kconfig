@@ -17,4 +17,11 @@ menu "Wifi Application Config"
         help
             Server Address of the SNTP server pool to synchronize the system time.
 
+    config WIFI_SNTP_INIT_WAIT_TIME_MS
+        int "Time to wait for the initial SNTP server response in ms."
+        default 60000
+        help
+            Set the time to wait for the initial SNTP server response. (Default 1 min)
+
+
 endmenu
