@@ -132,3 +132,16 @@ Example:
   "connection": "connected"
 }
 ```
+
+### Pump
+
+Channel: `MQTT_PUMP_STATUS_TOPIC` (default: `ef/efc/timed/pump`)
+
+Data-Format: json
+
+Data:
+| Key | Typ | Description |
+|---|---|---|
+| id | uint_8 | Id of the specific board Integer between 0 and 255 |
+| ts | string | Current timestamp in ISO 8601 format including microseconds |
+| status | string | "start" when starting to pump and "stop" when stopping  |
