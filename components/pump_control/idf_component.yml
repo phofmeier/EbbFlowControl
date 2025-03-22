@@ -16,3 +16,5 @@ dependencies:
   #   public: true
   configuration:
     path: "../configuration/"
+  mqtt5_connection:
+    path: "../mqtt5_connection/"

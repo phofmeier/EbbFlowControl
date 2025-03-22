@@ -1,6 +1,8 @@
 #include "pump_control.h"
 
+#include "cJSON.h"
 #include "configuration.h"
+#include "data_logging.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "sdkconfig.h"
@@ -18,13 +20,23 @@ static const char *TAG = "pump_control";
  * @brief Stop pumping
  *
  */
-inline void stop_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1); }
+void stop_pump() {
+  gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1);
+  cJSON *data = cJSON_CreateObject();
+  cJSON_AddStringToObject(data, "status", "off");
+  send_timed_data(CONFIG_MQTT_PUMP_STATUS_TOPIC, data);
+}
 
 /**
  * @brief Start pumping
  *
  */
-inline void start_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0); }
+void start_pump() {
+  gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0);
+  cJSON *data = cJSON_CreateObject();
+  cJSON_AddStringToObject(data, "status", "on");
+  send_timed_data(CONFIG_MQTT_PUMP_STATUS_TOPIC, data);
+}
 
 /**
  * @brief Configure the GPIO output for the pump
