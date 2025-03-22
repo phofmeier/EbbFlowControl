@@ -23,7 +23,7 @@ static const char *TAG = "pump_control";
 void stop_pump() {
   gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1);
   cJSON *data = cJSON_CreateObject();
-  cJSON_AddStringToObject(data, "status", "off");
+  cJSON_AddStringToObject(data, "status", "stop");
   send_timed_data(CONFIG_MQTT_PUMP_STATUS_TOPIC, data);
 }
 
@@ -34,7 +34,7 @@ void stop_pump() {
 void start_pump() {
   gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0);
   cJSON *data = cJSON_CreateObject();
-  cJSON_AddStringToObject(data, "status", "on");
+  cJSON_AddStringToObject(data, "status", "start");
   send_timed_data(CONFIG_MQTT_PUMP_STATUS_TOPIC, data);
 }
 
