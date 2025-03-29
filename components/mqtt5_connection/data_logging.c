@@ -29,12 +29,13 @@ void send_timed_data(const char *topic, cJSON *data) {
   time(&now);
   struct tm timeinfo;
   localtime_r(&now, &timeinfo);
+  char time_string[70];
+  int time_len = strftime(time_string, sizeof(time_string), "%FT%T", &timeinfo);
+
   struct timeval tv_now;
   gettimeofday(&tv_now, NULL);
-  char time_string[30];
-  int time_len = strftime(time_string, sizeof(time_string), "%FT%T", &timeinfo);
-  time_len = snprintf(time_string + time_len, sizeof(time_string) - time_len,
-                      ".%06ld", tv_now.tv_usec);
+  time_len += snprintf(time_string + time_len, sizeof(time_string) - time_len,
+                       ".%06ld", tv_now.tv_usec);
   strftime(time_string + time_len, sizeof(time_string) - time_len, "%z",
            &timeinfo);
   cJSON_AddStringToObject(data, "ts", time_string);

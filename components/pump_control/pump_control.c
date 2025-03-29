@@ -57,7 +57,7 @@ void configure_pump_output() {
   io_conf.pull_up_en = 0;
   // configure GPIO with the given settings
   ESP_ERROR_CHECK(gpio_config(&io_conf));
-  stop_pump();
+  gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1);
 }
 
 /**
@@ -86,7 +86,7 @@ unsigned short get_cur_min_of_day() {
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 2048
+#define STACK_SIZE 4096
 
 /* Structure that will hold the TCB of the task being created. */
 
@@ -180,6 +180,7 @@ void pump_control_task(void *pvParameters) {
 TaskHandle_t create_pump_control_task() {
   // initialize GPIO
   configure_pump_output();
+  stop_pump();
 
   // Static task without dynamic memory allocation
   TaskHandle_t task_handle = xTaskCreateStatic(
