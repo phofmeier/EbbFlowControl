@@ -5,6 +5,12 @@ menu "Pump Application Config"
         help
             Set the pin number to activate the pump
 
+    config MQTT_PUMP_STATUS_TOPIC
+        string "MQTT Topic for the Pump Status"
+        default "ef/efc/timed/pump"
+        help
+            Set the MQTT topic to publish the pump status
+
     config LOCAL_TIME_ZONE
         string "Local time zone"
         default "CET-1CEST,M3.5.0,M10.5.0/3"

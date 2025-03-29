@@ -11,6 +11,18 @@ dependencies:
     source:
       type: idf
     version: 5.3.1
+  mqtt5_connection:
+    dependencies:
+    - name: idf
+      version: '>=4.1.0'
+    - name: configuration
+      path: ../configuration/
+    - name: wifi_utils
+      path: ../wifi_utils/
+    source:
+      path: /workspaces/EbbFlowControl/components/mqtt5_connection
+      type: local
+    version: '*'
   wifi_utils:
     dependencies:
     - name: idf
@@ -24,7 +36,8 @@ dependencies:
 direct_dependencies:
 - configuration
 - idf
+- mqtt5_connection
 - wifi_utils
-manifest_hash: bc78ec54918ee795b4336b8e587204789d798df835ea27450345072ece8323d4
+manifest_hash: 44ed24fb213c76fac8024f62bd8a302819da1bf219e91e2bfa7f71b9c9528fce
 target: esp32
 version: 2.0.0

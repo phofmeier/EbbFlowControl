@@ -14,5 +14,6 @@ Use the following labels:
 ## [UNRELEASED]
 
 ### Added
+- [Patch] Send value for start and stop of pump.
 - [Patch] Wifi and MQTT connection only tries to connect every 10 min after multiple failed attempts.
 - [Patch] First Version

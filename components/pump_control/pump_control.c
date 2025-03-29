@@ -1,6 +1,8 @@
 #include "pump_control.h"
 
+#include "cJSON.h"
 #include "configuration.h"
+#include "data_logging.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "sdkconfig.h"
@@ -18,13 +20,23 @@ static const char *TAG = "pump_control";
  * @brief Stop pumping
  *
  */
-inline void stop_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1); }
+void stop_pump() {
+  gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1);
+  cJSON *data = cJSON_CreateObject();
+  cJSON_AddStringToObject(data, "status", "stop");
+  send_timed_data(CONFIG_MQTT_PUMP_STATUS_TOPIC, data);
+}
 
 /**
  * @brief Start pumping
  *
  */
-inline void start_pump() { gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0); }
+void start_pump() {
+  gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0);
+  cJSON *data = cJSON_CreateObject();
+  cJSON_AddStringToObject(data, "status", "start");
+  send_timed_data(CONFIG_MQTT_PUMP_STATUS_TOPIC, data);
+}
 
 /**
  * @brief Configure the GPIO output for the pump
@@ -45,7 +57,7 @@ void configure_pump_output() {
   io_conf.pull_up_en = 0;
   // configure GPIO with the given settings
   ESP_ERROR_CHECK(gpio_config(&io_conf));
-  stop_pump();
+  gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1);
 }
 
 /**
@@ -74,7 +86,7 @@ unsigned short get_cur_min_of_day() {
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 2048
+#define STACK_SIZE 4096
 
 /* Structure that will hold the TCB of the task being created. */
 
@@ -168,6 +180,7 @@ void pump_control_task(void *pvParameters) {
 TaskHandle_t create_pump_control_task() {
   // initialize GPIO
   configure_pump_output();
+  stop_pump();
 
   // Static task without dynamic memory allocation
   TaskHandle_t task_handle = xTaskCreateStatic(

@@ -3,6 +3,9 @@
 
 #include "mqtt_client.h"
 
+/** client handle of the connection  */
+extern esp_mqtt_client_handle_t client_;
+
 /**
  * @brief user property included in all messages
  *

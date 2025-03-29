@@ -16,7 +16,8 @@
     "sntp"
   ],
   "files.associations": {
-    "config_connection.h": "c",
-    "mqtt5_connection.h": "c"
+    "*.h": "c",
+    "*.tcc": "c",
+    "ctime": "c"
   }
 }

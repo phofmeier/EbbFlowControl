@@ -3,6 +3,7 @@
 // #include "mqtt5_connection.h"
 // #include "mqtt_shared.h"
 
+#include "cJSON.h"
 #include "configuration.h"
 #include "esp_log.h"
 
