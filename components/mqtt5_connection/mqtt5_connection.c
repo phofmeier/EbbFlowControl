@@ -1,6 +1,7 @@
 #include "mqtt5_connection.h"
 
 #include "config_connection.h"
+#include "data_logging.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
@@ -25,6 +26,8 @@ static EventGroupHandle_t s_mqtt5_event_group_;
 
 /** client handle of the connection  */
 esp_mqtt_client_handle_t client_;
+
+bool mqtt5_connected = false;
 
 /**
  * @brief Publish message that the status is connected.
@@ -132,14 +135,17 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
 
   switch ((esp_mqtt_event_id_t)event_id) {
   case MQTT_EVENT_CONNECTED:
+    mqtt5_connected = true;
     disconnect_counter_ = 0;
     ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
     print_user_property(event->property->user_property);
     subscribe_to_config_channel(client);
     send_status_connected(client);
     send_current_configuration(client);
+    resend_saved_messages();
     break;
   case MQTT_EVENT_DISCONNECTED:
+    mqtt5_connected = false;
     if (CONFIG_MQTT_MAX_RECONNECT_ATTEMPTS > 0 &&
         disconnect_counter_ > CONFIG_MQTT_MAX_RECONNECT_ATTEMPTS) {
       xEventGroupSetBits(s_mqtt5_event_group_, MQTT5_CONNECTION_FAILED_BIT);
@@ -167,6 +173,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
   case MQTT_EVENT_PUBLISHED:
     ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
     print_user_property(event->property->user_property);
+    remove_from_sent_map(event->msg_id);
     break;
   case MQTT_EVENT_DATA:
     ESP_LOGI(TAG, "MQTT_EVENT_DATA");
@@ -187,6 +194,10 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
              event->property->content_type);
     ESP_LOGI(TAG, "TOPIC=%.*s", event->topic_len, event->topic);
     ESP_LOGI(TAG, "DATA=%.*s", event->data_len, event->data);
+    break;
+  case MQTT_EVENT_DELETED:
+    reschedule_message(event->msg_id);
+    ESP_LOGI(TAG, "MQTT_EVENT_DELETED, msg_id=%d", event->msg_id);
     break;
   case MQTT_EVENT_ERROR:
     ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
