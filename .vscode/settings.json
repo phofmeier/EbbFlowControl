@@ -19,5 +19,6 @@
     "*.h": "c",
     "*.tcc": "c",
     "ctime": "c"
-  }
+  },
+  "idf.pythonInstallPath": "/usr/bin/python3"
 }
