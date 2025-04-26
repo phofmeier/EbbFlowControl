@@ -16,7 +16,7 @@ void send_timed_data(const char *channel, cJSON *data);
  *
  * @param msg_id id of the message to remove.
  */
-void remove_from_sent_map(int msg_id);
+void remove_from_sent_map(const int msg_id);
 
 /**
  * @brief Resend all saved messages.
@@ -29,6 +29,6 @@ void resend_saved_messages();
  *
  * @param msg_id id of the message to reschedule.
  */
-void reschedule_message(int msg_id);
+void reschedule_message(const int msg_id);
 
 #endif /* COMPONENTS_MQTT5_CONNECTION_INCLUDE_DATA_LOGGING */

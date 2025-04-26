@@ -6,7 +6,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-#define MAX_SAVED_MESSAGES 40
+#define MAX_SAVED_MESSAGES 100
 
 static const char *TAG = "mqtt5_data_logging";
 
@@ -91,7 +91,7 @@ char *build_data_string(cJSON *data) {
  *
  * @param index index of the message in the sent map.
  */
-void sent_message_from_map(int index) {
+void sent_message_from_map(const int index) {
 
   esp_mqtt5_client_set_user_property(&config_publish_property.user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
@@ -131,15 +131,17 @@ void send_timed_data(const char *topic, cJSON *data) {
   sent_message_from_map(curr_index);
 }
 
-void remove_from_sent_map(int msg_id) {
+void remove_from_sent_map(const int msg_id) {
   for (int i = 0; i < MAX_SAVED_MESSAGES; i++) {
-    if (sent_map[i].message_id == msg_id) {
-      free(sent_map[i].data);
-      free(sent_map[i].topic);
-      sent_map[i].status = SENT_MAP_EMPTY;
-      sent_map[i].message_id = -1;
-      sent_map[i].data = NULL;
-      sent_map[i].topic = NULL;
+    const int search_index =
+        (MAX_SAVED_MESSAGES + free_sent_map_index - i - 1) % MAX_SAVED_MESSAGES;
+    if (sent_map[search_index].message_id == msg_id) {
+      free(sent_map[search_index].data);
+      free(sent_map[search_index].topic);
+      sent_map[search_index].status = SENT_MAP_EMPTY;
+      sent_map[search_index].message_id = -1;
+      sent_map[search_index].data = NULL;
+      sent_map[search_index].topic = NULL;
       break;
     }
   }
@@ -153,10 +155,12 @@ void resend_saved_messages() {
   }
 }
 
-void reschedule_message(int message_id) {
+void reschedule_message(const int message_id) {
   for (int i = 0; i < MAX_SAVED_MESSAGES; i++) {
-    if (sent_map[i].message_id == message_id) {
-      sent_map[i].status = SENT_MAP_SCHEDULED;
+    const int search_index =
+        (MAX_SAVED_MESSAGES + free_sent_map_index - i - 1) % MAX_SAVED_MESSAGES;
+    if (sent_map[search_index].message_id == message_id) {
+      sent_map[search_index].status = SENT_MAP_SCHEDULED;
       break;
     }
   }
