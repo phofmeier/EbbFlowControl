@@ -8,8 +8,7 @@
       "extensions": [
         "espressif.esp-idf-extension",
         "streetsidesoftware.code-spell-checker",
-        "ms-vscode.cpptools",
-        "twxs.cmake",
+        "ms-vscode.cpptools-extension-pack",
         "akiramiyakoda.cppincludeguard",
         "cschlosser.doxdocgen"
       ]
