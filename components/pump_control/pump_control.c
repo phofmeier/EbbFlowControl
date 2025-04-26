@@ -167,7 +167,7 @@ void pump_control_task(void *pvParameters) {
       if (state == WAITING) {
         minutes_to_next_start = floor(minutes_to_next_start * 0.9);
         minutes_to_next_start = fmax(0, minutes_to_next_start);
-        ESP_LOGI(TAG, "Wait for stop for %i min", minutes_to_next_start);
+        ESP_LOGI(TAG, "Wait for next start for %i min", minutes_to_next_start);
         // Wait for minimum 10 second
         ulTaskNotifyTake(
             pdTRUE, pdMS_TO_TICKS((minutes_to_next_start * 60 + 10) * 1e3));
