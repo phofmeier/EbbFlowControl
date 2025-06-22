@@ -26,5 +26,5 @@ jobs:
           title: Update pre-commit hooks
           commit-message: "chore: update pre-commit hooks"
           body: Update versions of pre-commit hooks to latest version.
-          assignees: PeterHofmeier
+          assignees: phofmeier
           labels: "Skip-Changelog"
