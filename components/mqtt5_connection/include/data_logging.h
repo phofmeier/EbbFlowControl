@@ -46,7 +46,7 @@ struct data_logging_event_t {
  * @param topic Topic to which the data is going to be added.
  * @param data Data to be added in cJSON format.
  */
-void add_timed_data(char *topic, cJSON *data);
+void add_timed_data(const char *topic, cJSON *data);
 
 /**
  * @brief Set a connected event.

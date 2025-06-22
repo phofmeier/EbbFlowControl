@@ -18,13 +18,14 @@
 
 #define TIMEOUT_SENT_DATA 1 * 60 * 1000 * portTICK_PERIOD_MS
 #define TIMEOUT_DISCONNECTED 12 * 60 * 60 * 1000 * portTICK_PERIOD_MS
+#define FORBIDDEN_PATH_CHAR '='
 static const char *TAG = "data_logging";
 
 /* Dimensions of the buffer that the task being created will use as its stack.
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 4096
+#define STACK_SIZE 8096
 
 /* Structure that will hold the TCB of the task being created. */
 static StaticTask_t xTaskBuffer;
@@ -37,7 +38,7 @@ static StackType_t xStack[STACK_SIZE];
 /**
  * @brief Path to the data directory where all data files will be stored.
  */
-static const char *data_dir_path = "/store/data";
+static const char *data_dir_path = "/store/log_data";
 
 /**
  * @brief Event queue for sending and receiving events for the data logging
@@ -69,6 +70,21 @@ static char current_file_path_in_queue_[256] = "";
 static int current_data_id_ = -1;
 
 static unsigned int next_file_id_ = 0;
+
+// void list_dir(char *path) {
+//   DIR *dp;
+//   struct dirent *ep;
+//   dp = opendir(path);
+//   ESP_LOGI(TAG, "List dir %s", path);
+//   if (dp != NULL) {
+//     while ((ep = readdir(dp)) != NULL)
+//       ESP_LOGI(TAG, "Found %i, %s", ep->d_type, ep->d_name);
+
+//     (void)closedir(dp);
+//   } else {
+//     ESP_LOGI(TAG, "Couldn't open the directory");
+//   }
+// }
 
 void set_connected() {
   ESP_LOGI(TAG, "Setting connected state");
@@ -153,6 +169,8 @@ void get_next_data_file_path() {
   }
   const struct dirent *dir_entry;
   while ((dir_entry = readdir(root_dir)) != NULL) {
+    ESP_LOGI(TAG, "Found first dir %s, %i", dir_entry->d_name,
+             dir_entry->d_type);
     if (dir_entry->d_type == DT_DIR) {
       // Check if the entry is a directory
       char sub_dir_path[256];
@@ -166,6 +184,8 @@ void get_next_data_file_path() {
       }
       const struct dirent *sub_dir_entry;
       while ((sub_dir_entry = readdir(sub_dir)) != NULL) {
+        ESP_LOGI(TAG, "Found sub dir entry %s, %i", sub_dir_entry->d_name,
+                 sub_dir_entry->d_type);
         if (sub_dir_entry->d_type == DT_REG) {
           snprintf(current_file_path_in_queue_,
                    sizeof(current_file_path_in_queue_), "%.220s/%.20s",
@@ -176,9 +196,15 @@ void get_next_data_file_path() {
         }
       }
       closedir(sub_dir);
+      int ret = rmdir(sub_dir_path);
+      if (ret < 0) {
+        ESP_LOGE(TAG, "Failed to remove empty dir %s, %i, %s", sub_dir_path,
+                 ret, strerror(errno));
+      }
+      ESP_LOGI(TAG, "Removed empty subdir %s", sub_dir_path);
     }
-    closedir(root_dir);
   }
+  closedir(root_dir);
 }
 
 /**
@@ -212,6 +238,7 @@ void send_current_data() {
     current_file_path_in_queue_[0] = '\0'; // Clear the path if read fails
     return;
   }
+  buffer[bytes_read] = '\0';
   close(fd);
   char topic[256];
   const char *json_ext = strstr(current_file_path_in_queue_, ".json");
@@ -220,7 +247,7 @@ void send_current_data() {
       6;
   memcpy(topic, current_file_path_in_queue_ + strlen(data_dir_path) + 1, len);
   topic[len] = '\0';
-  replace_char(topic, '.', '/');
+  replace_char(topic, FORBIDDEN_PATH_CHAR, '/');
 
   current_data_id_ = mqtt_sent_message(topic, buffer);
 }
@@ -239,7 +266,8 @@ void schedule_next_data_send() {
   }
   get_next_data_file_path();
   if (strlen(current_file_path_in_queue_) == 0) {
-    ESP_LOGE(TAG, "Failed to get next data file path");
+    ESP_LOGE(TAG, "Failed to get next data file path %s",
+             current_file_path_in_queue_);
     return;
   }
   send_current_data();
@@ -337,32 +365,52 @@ void data_logging_task(void *arg) {
   }
 }
 
-void add_timed_data(char *topic, cJSON *data) {
+unsigned int increment_file_id() {
+  next_file_id_++;
+  if (next_file_id_ > 99999) {
+    next_file_id_ = 0;
+  }
+  return next_file_id_;
+}
+
+void add_timed_data(const char *topic, cJSON *data) {
   char *json_string = serialize_timed_data(data);
   cJSON_Delete(data);
-  replace_char(topic, '/', '.');
+  char *topic_str = strdup(topic);
+  ESP_LOGD(TAG, "Topic before replaced: %s", topic_str);
+  replace_char(topic_str, '/', FORBIDDEN_PATH_CHAR);
   char path[256];
   int dir_path_len =
-      snprintf(path, sizeof(path), "%s/%s", data_dir_path, topic);
-  mkdir(path, 0777); // Ensure the directory exists
+      snprintf(path, sizeof(path), "%s/%s", data_dir_path, topic_str);
   if (dir_path_len < 0 || dir_path_len >= sizeof(path) - 12) {
     ESP_LOGE(TAG, "Path too long: %s", path);
     return;
   }
-  snprintf(path + dir_path_len, sizeof(path), "/%05u.json", ++next_file_id_);
+  // mkdir(path, 0777); // Ensure the directory exists
+  int ret = mkdir(path, 0777);
+  if (ret < 0) {
+    ESP_LOGE(TAG, "Failed to create directory: %s, %i, %s", path, ret,
+             strerror(errno));
+  }
+
+  snprintf(path + dir_path_len, sizeof(path), "/%05u.json",
+           increment_file_id());
   for (size_t i = 0; i < UINT16_MAX && access(path, F_OK) == 0; i++) {
-    snprintf(path + dir_path_len, sizeof(path), "/%05u.json", ++next_file_id_);
+    snprintf(path + dir_path_len, sizeof(path), "/%05u.json",
+             increment_file_id());
   }
   int fd = open(path, O_RDWR | O_CREAT | O_TRUNC, 0);
 
   if (fd < 0) {
-    ESP_LOGE(TAG, "Failed to open file for writing");
+    ESP_LOGE(TAG, "Failed to open file %s for writing. Error %i", path, fd);
     return;
   }
 
-  ESP_LOGI(TAG, "Writing to the file");
+  ESP_LOGI(TAG, "Writing to the file %s", path);
   write(fd, json_string, strlen(json_string));
   close(fd);
+  free(json_string);
+  free(topic_str);
 
   xQueueSendToBack(
       event_queue_handle_,
@@ -382,10 +430,14 @@ void init() {
   // Create data directory if it does not exist
   int ret = mkdir(data_dir_path, 0777);
   if (ret < 0) {
-    ESP_LOGE(TAG, "Failed to create a new directory: %i", ret);
+    ESP_LOGE(TAG, "Failed to create a new directory at %s: %i, %s",
+             data_dir_path, ret, strerror(errno));
   } else {
     ESP_LOGI(TAG, "Data directory created successfully: %s", data_dir_path);
   }
+  // list_dir("/store");
+  // list_dir(data_dir_path);
+  // list_dir("/store/log_data/ef_efc_timed_pump");
 }
 
 /**
