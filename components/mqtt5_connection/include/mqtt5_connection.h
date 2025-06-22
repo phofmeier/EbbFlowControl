@@ -10,6 +10,15 @@
 void mqtt5_conn_init();
 
 /**
+ * @brief Send a message to the MQTT broker.
+ *
+ * @param topic topic to which the message is sent.
+ * @param data data to send.
+ * @return int message id of the sent message. Negative if failed.
+ */
+int mqtt_sent_message(const char *topic, const char *data);
+
+/**
  * @brief Task to check the connection and retry if it fails.
  *
  * @param pvParameters (unused)

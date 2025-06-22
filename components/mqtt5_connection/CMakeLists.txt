@@ -1,3 +1,3 @@
-idf_component_register(SRCS "data_logging.c" "config_connection.c" "data_logging.c" "mqtt5_connection.c"
+idf_component_register(SRCS "config_connection.c" "data_logging.c" "mqtt5_connection.c"
                         INCLUDE_DIRS
-                       "include" REQUIRES mqtt json)
+                       "include" REQUIRES mqtt json vfs fatfs)

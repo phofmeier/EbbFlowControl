@@ -142,7 +142,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     subscribe_to_config_channel(client);
     send_status_connected(client);
     send_current_configuration(client);
-    resend_saved_messages();
+    set_connected();
     break;
   case MQTT_EVENT_DISCONNECTED:
     mqtt5_connected = false;
@@ -154,6 +154,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED counter: %i", disconnect_counter_);
     print_user_property(event->property->user_property);
     disconnect_counter_++; // Increased after each disconnect.
+    set_disconnected();
     break;
   case MQTT_EVENT_SUBSCRIBED:
     ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -173,7 +174,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
   case MQTT_EVENT_PUBLISHED:
     ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
     print_user_property(event->property->user_property);
-    remove_from_sent_map(event->msg_id);
+    set_data_published(event->msg_id);
     break;
   case MQTT_EVENT_DATA:
     ESP_LOGI(TAG, "MQTT_EVENT_DATA");
@@ -196,7 +197,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     ESP_LOGI(TAG, "DATA=%.*s", event->data_len, event->data);
     break;
   case MQTT_EVENT_DELETED:
-    reschedule_message(event->msg_id);
+    set_disconnected();
     ESP_LOGI(TAG, "MQTT_EVENT_DELETED, msg_id=%d", event->msg_id);
     break;
   case MQTT_EVENT_ERROR:
@@ -219,6 +220,27 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     ESP_LOGI(TAG, "Other event id:%d", event->event_id);
     break;
   }
+}
+
+int mqtt_sent_message(const char *topic, const char *data) {
+  static esp_mqtt5_publish_property_config_t config_publish_property = {
+      .payload_format_indicator = 1,
+      .message_expiry_interval = 1000,
+      .topic_alias = 0,
+      .response_topic = NULL,
+      .correlation_data = NULL,
+      .correlation_data_len = 0,
+  };
+
+  esp_mqtt5_client_set_user_property(&config_publish_property.user_property,
+                                     user_property_arr, USE_PROPERTY_ARR_SIZE);
+  esp_mqtt5_client_set_publish_property(client_, &config_publish_property);
+  int msg_id = esp_mqtt_client_enqueue(client_, topic, data, 0, 1, 1, true);
+
+  esp_mqtt5_client_delete_user_property(config_publish_property.user_property);
+  config_publish_property.user_property = NULL;
+  ESP_LOGI(TAG, "sent data, msg_id=%d", msg_id);
+  return msg_id;
 }
 
 void mqtt5_conn_init() {
