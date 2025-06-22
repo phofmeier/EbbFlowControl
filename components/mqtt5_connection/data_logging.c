@@ -1,60 +1,112 @@
 #include "data_logging.h"
 
 #include "configuration.h"
+#include "mqtt5_connection.h"
+
 #include "esp_log.h"
-#include "mqtt_shared.h"
-#include <sys/time.h>
+#include "esp_vfs.h"
+#include "esp_vfs_fat.h"
+#include "freertos/queue.h"
+#include <dirent.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/errno.h>
+#include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 
-#define MAX_SAVED_MESSAGES 100
+#define TIMEOUT_SENT_DATA 1 * 60 * 1000 * portTICK_PERIOD_MS
+#define TIMEOUT_DISCONNECTED 12 * 60 * 60 * 1000 * portTICK_PERIOD_MS
+static const char *TAG = "data_logging";
 
-static const char *TAG = "mqtt5_data_logging";
+/* Dimensions of the buffer that the task being created will use as its stack.
+   NOTE: This is the number of words the stack will hold, not the number of
+   bytes. For example, if each stack item is 32-bits, and this is set to 100,
+   then 400 bytes (100 * 32-bits) will be allocated. */
+#define STACK_SIZE 4096
 
-/**
- * @brief Enum with the status of amessage.
- *
- */
-enum sent_map_status {
-  SENT_MAP_EMPTY = 0,
-  SENT_MAP_SCHEDULED = 1,
-  SENT_MAP_ENQUEUED = 2,
-};
+/* Structure that will hold the TCB of the task being created. */
+static StaticTask_t xTaskBuffer;
 
-/**
- * @brief Struct to save the sent messages.
- *
- */
-struct sent_message_data {
-  enum sent_map_status status;
-  int message_id;
-  char *data;
-  char *topic;
-};
+/* Buffer that the task being created will use as its stack. Note this is
+   an array of StackType_t variables. The size of StackType_t is dependent on
+   the RTOS port. */
+static StackType_t xStack[STACK_SIZE];
 
 /**
- * @brief index of the next free message in the sent map.
- *
+ * @brief Path to the data directory where all data files will be stored.
  */
-static int free_sent_map_index = 0;
+static const char *data_dir_path = "/store/data";
 
 /**
- * @brief Array to save the sent messages.
+ * @brief Event queue for sending and receiving events for the data logging
+ * task.
+ */
+static StaticQueue_t event_queue_;
+/**
+ * @brief Handle to the event queue used for communication between tasks.
+ */
+static QueueHandle_t event_queue_handle_;
+/**
+ * @brief Length of the queue.
  *
  */
-static struct sent_message_data sent_map[MAX_SAVED_MESSAGES];
+#define QUEUE_LENGTH 30
+/**
+ * @brief Size of one queue item in bytes.
+ *
+ */
+#define EVENT_QUEUE_ITEM_SIZE sizeof(struct data_logging_event_t)
 
 /**
- * @brief property to publish to the config channel
+ * @brief Storage area for the event queue.
  *
  */
-static esp_mqtt5_publish_property_config_t config_publish_property = {
-    .payload_format_indicator = 1,
-    .message_expiry_interval = 1000,
-    .topic_alias = 0,
-    .response_topic = NULL,
-    .correlation_data = NULL,
-    .correlation_data_len = 0,
-};
+static uint8_t event_queue_storage_area[QUEUE_LENGTH * EVENT_QUEUE_ITEM_SIZE];
+
+static char current_file_path_in_queue_[256] = "";
+static int current_data_id_ = -1;
+
+static unsigned int next_file_id_ = 0;
+
+void set_connected() {
+  ESP_LOGI(TAG, "Setting connected state");
+  xQueueSendToBack(
+      event_queue_handle_,
+      &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_CONNECTED},
+      portMAX_DELAY);
+}
+
+void set_disconnected() {
+  ESP_LOGI(TAG, "Setting disconnected state");
+  xQueueSendToBack(
+      event_queue_handle_,
+      &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_DISCONNECTED},
+      portMAX_DELAY);
+}
+
+void set_data_published(unsigned int id) {
+  ESP_LOGI(TAG, "Setting data published state");
+  xQueueSendToBack(event_queue_handle_,
+                   (&(struct data_logging_event_t){
+                       .type = DATA_LOGGING_EVENT_DATA_PUBLISHED, .id = id}),
+                   portMAX_DELAY);
+}
+
+/**
+ * @brief Replace all occurrences of a character in a string with another.
+ *
+ * @param str String to modify.
+ * @param orig original character to replace.
+ * @param rep character to replace with.
+ */
+void replace_char(char *str, char orig, char rep) {
+  char *ix = str;
+  while ((ix = strchr(ix, orig)) != NULL) {
+    *ix++ = rep;
+  }
+}
 
 /**
  * @brief Build the data string to send to the mqtt broker.
@@ -64,7 +116,7 @@ static esp_mqtt5_publish_property_config_t config_publish_property = {
  * @param data cJSON data to send.
  * @return char* string with the json data needs to be freed.
  */
-char *build_data_string(cJSON *data) {
+char *serialize_timed_data(cJSON *data) {
   // add id
   cJSON_AddNumberToObject(data, "id", configuration.id);
   // add current timestamp
@@ -87,81 +139,269 @@ char *build_data_string(cJSON *data) {
 }
 
 /**
- * @brief Send the message from the sent map to the mqtt broker.
+ * @brief Get the next data file path from the data directory.
  *
- * @param index index of the message in the sent map.
+ * This function searches through the data directory and its subdirectories
+ * for the next available data file to send.
  */
-void sent_message_from_map(const int index) {
-
-  esp_mqtt5_client_set_user_property(&config_publish_property.user_property,
-                                     user_property_arr, USE_PROPERTY_ARR_SIZE);
-  esp_mqtt5_client_set_publish_property(client_, &config_publish_property);
-  int msg_id = esp_mqtt_client_enqueue(client_, sent_map[index].topic,
-                                       sent_map[index].data, 0, 1, 1, true);
-  sent_map[index].message_id = msg_id;
-  if (msg_id >= 0) {
-    sent_map[index].status = SENT_MAP_ENQUEUED;
-  }
-
-  esp_mqtt5_client_delete_user_property(config_publish_property.user_property);
-  config_publish_property.user_property = NULL;
-  ESP_LOGI(TAG, "sent successful, msg_id=%d", msg_id);
-}
-
-void send_timed_data(const char *topic, cJSON *data) {
-  char *json_string = build_data_string(data);
-  cJSON_Delete(data);
-
-  // add to sent map
-  const int curr_index = free_sent_map_index;
-  free_sent_map_index++;
-  if (free_sent_map_index >= MAX_SAVED_MESSAGES) {
-    free_sent_map_index = 0;
-  }
-
-  sent_map[curr_index].status = SENT_MAP_SCHEDULED;
-  sent_map[curr_index].message_id = -1;
-  sent_map[curr_index].data = json_string;
-  sent_map[curr_index].topic = strdup(topic);
-
-  if (!mqtt5_connected) {
-    ESP_LOGI(TAG, "Client not connected, message saved");
+void get_next_data_file_path() {
+  current_file_path_in_queue_[0] = '\0';
+  DIR *root_dir = opendir(data_dir_path);
+  if (!root_dir) {
+    ESP_LOGE(TAG, "Failed to open data directory: %s", data_dir_path);
     return;
   }
-  sent_message_from_map(curr_index);
+  const struct dirent *dir_entry;
+  while ((dir_entry = readdir(root_dir)) != NULL) {
+    if (dir_entry->d_type == DT_DIR) {
+      // Check if the entry is a directory
+      char sub_dir_path[256];
+      snprintf(sub_dir_path, sizeof(sub_dir_path), "%.20s/%.220s",
+               data_dir_path, dir_entry->d_name);
+
+      DIR *sub_dir = opendir(sub_dir_path);
+      if (!sub_dir) {
+        ESP_LOGE(TAG, "Failed to open subdirectory: %s", sub_dir_path);
+        continue;
+      }
+      const struct dirent *sub_dir_entry;
+      while ((sub_dir_entry = readdir(sub_dir)) != NULL) {
+        if (sub_dir_entry->d_type == DT_REG) {
+          snprintf(current_file_path_in_queue_,
+                   sizeof(current_file_path_in_queue_), "%.220s/%.20s",
+                   sub_dir_path, sub_dir_entry->d_name);
+          closedir(sub_dir);
+          closedir(root_dir);
+          return;
+        }
+      }
+      closedir(sub_dir);
+    }
+    closedir(root_dir);
+  }
 }
 
-void remove_from_sent_map(const int msg_id) {
-  for (int i = 0; i < MAX_SAVED_MESSAGES; i++) {
-    const int search_index =
-        (MAX_SAVED_MESSAGES + free_sent_map_index - i - 1) % MAX_SAVED_MESSAGES;
-    if (sent_map[search_index].message_id == msg_id) {
-      free(sent_map[search_index].data);
-      free(sent_map[search_index].topic);
-      sent_map[search_index].status = SENT_MAP_EMPTY;
-      sent_map[search_index].message_id = -1;
-      sent_map[search_index].data = NULL;
-      sent_map[search_index].topic = NULL;
-      break;
+/**
+ * @brief Send the current data file to the MQTT broker.
+ *
+ */
+void send_current_data() {
+  current_data_id_ = -1;
+  if (strlen(current_file_path_in_queue_) == 0) {
+    ESP_LOGE(TAG, "No file path in queue to send");
+    return;
+  }
+  // Open the file to read its content
+  int fd = open(current_file_path_in_queue_, O_RDONLY);
+  if (fd < 0) {
+    ESP_LOGE(TAG, "Failed to open file: %s", current_file_path_in_queue_);
+    current_file_path_in_queue_[0] = '\0'; // Clear the path if open fails
+    return;
+  }
+  // Read the file content
+  char buffer[2048];
+  ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+  close(fd);
+  if (bytes_read < 0) {
+    ESP_LOGE(TAG, "Failed to read file: %s", current_file_path_in_queue_);
+    current_file_path_in_queue_[0] = '\0'; // Clear the path if read fails
+    return;
+  }
+  if (bytes_read == sizeof(buffer) - 1) {
+    ESP_LOGE(TAG, "File too large to read: %s", current_file_path_in_queue_);
+    current_file_path_in_queue_[0] = '\0'; // Clear the path if read fails
+    return;
+  }
+  close(fd);
+  char topic[256];
+  const char *json_ext = strstr(current_file_path_in_queue_, ".json");
+  size_t len =
+      (json_ext - (current_file_path_in_queue_ + strlen(data_dir_path) + 1)) -
+      6;
+  memcpy(topic, current_file_path_in_queue_ + strlen(data_dir_path) + 1, len);
+  topic[len] = '\0';
+  replace_char(topic, '.', '/');
+
+  current_data_id_ = mqtt_sent_message(topic, buffer);
+}
+
+/**
+ * @brief Schedule the next data send operation.
+ *
+ * This function checks if there is already a file in the queue. If not, it
+ * retrieves the next data file path and sends the data to the MQTT broker.
+ */
+void schedule_next_data_send() {
+  if (strlen(current_file_path_in_queue_) > 0) {
+    ESP_LOGW(TAG, "Current file path is not empty, skipping new data");
+    // If there is already a file in the queue, skip adding new data
+    return;
+  }
+  get_next_data_file_path();
+  if (strlen(current_file_path_in_queue_) == 0) {
+    ESP_LOGE(TAG, "Failed to get next data file path");
+    return;
+  }
+  send_current_data();
+  if (current_data_id_ < 0) {
+    ESP_LOGE(TAG, "Failed to send data to MQTT");
+    current_file_path_in_queue_[0] = '\0';
+  }
+  return;
+}
+
+/**
+ * @brief Remove the currently queued file from storage.
+ *
+ * Happens after the data was successfully sent to the MQTT broker.
+ *
+ */
+void remove_queued_file_from_storage() {
+  if (current_file_path_in_queue_[0] == '\0') {
+    ESP_LOGE(TAG, "No file path in queue to remove");
+    return;
+  }
+  // Remove the file from storage
+  if (remove(current_file_path_in_queue_) != 0) {
+    ESP_LOGE(TAG, "Failed to remove file: %s", current_file_path_in_queue_);
+  } else {
+    ESP_LOGI(TAG, "File removed successfully: %s", current_file_path_in_queue_);
+    current_file_path_in_queue_[0] = '\0'; // Clear the path after removal
+    current_data_id_ = -1;                 // Reset the current data ID
+  }
+}
+
+/**
+ * @brief Task to handle data logging events.
+ *
+ * This task waits for new data logging events and schedules sending the data
+ * via mqtt.
+ *
+ * @param arg
+ * @return * void
+ */
+void data_logging_task(void *arg) {
+  TickType_t timeout = TIMEOUT_SENT_DATA;
+  struct data_logging_event_t event;
+  BaseType_t queue_receive_result;
+  while (1) {
+    // Wait for new data to be added
+
+    queue_receive_result = xQueueReceive(event_queue_handle_, &event, timeout);
+
+    if (queue_receive_result == pdTRUE) { // Event received
+      switch (event.type) {
+      case DATA_LOGGING_EVENT_NEW_DATA:
+        ESP_LOGI(TAG, "New data event received");
+        schedule_next_data_send();
+        timeout = TIMEOUT_SENT_DATA;
+        break;
+      case DATA_LOGGING_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "Connected event received");
+        schedule_next_data_send();
+        timeout = TIMEOUT_SENT_DATA;
+        break;
+      case DATA_LOGGING_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "Disconnected event received");
+        current_file_path_in_queue_[0] = '\0';
+        timeout = TIMEOUT_DISCONNECTED;
+        break;
+      case DATA_LOGGING_EVENT_DATA_PUBLISHED:
+        ESP_LOGI(TAG, "Data published event received");
+        if (event.id != current_data_id_) {
+          ESP_LOGE(TAG, "Invalid data ID received");
+          timeout = TIMEOUT_SENT_DATA;
+          continue; // Skip processing if ID is invalid
+        }
+        remove_queued_file_from_storage();
+        schedule_next_data_send();
+        timeout = TIMEOUT_SENT_DATA;
+        break;
+      default:
+        ESP_LOGW(TAG, "Unknown event type: %d", event.type);
+        timeout = TIMEOUT_SENT_DATA;
+        break;
+      }
+    } else {
+      ESP_LOGW(TAG, "Event queue timeout");
+      if (current_file_path_in_queue_[0] == '\0') {
+        timeout = TIMEOUT_DISCONNECTED;
+      } else {
+        // Somehow we run into a timeout during sending data. This should not
+        // happen. Just reset and try again.
+        current_file_path_in_queue_[0] = '\0';
+        schedule_next_data_send();
+        timeout = TIMEOUT_SENT_DATA;
+      }
     }
   }
 }
 
-void resend_saved_messages() {
-  for (int i = 0; i < MAX_SAVED_MESSAGES; i++) {
-    if (sent_map[i].status == SENT_MAP_SCHEDULED) {
-      sent_message_from_map(i);
-    }
+void add_timed_data(char *topic, cJSON *data) {
+  char *json_string = serialize_timed_data(data);
+  cJSON_Delete(data);
+  replace_char(topic, '/', '.');
+  char path[256];
+  int dir_path_len =
+      snprintf(path, sizeof(path), "%s/%s", data_dir_path, topic);
+  mkdir(path, 0777); // Ensure the directory exists
+  if (dir_path_len < 0 || dir_path_len >= sizeof(path) - 12) {
+    ESP_LOGE(TAG, "Path too long: %s", path);
+    return;
+  }
+  snprintf(path + dir_path_len, sizeof(path), "/%05u.json", ++next_file_id_);
+  for (size_t i = 0; i < UINT16_MAX && access(path, F_OK) == 0; i++) {
+    snprintf(path + dir_path_len, sizeof(path), "/%05u.json", ++next_file_id_);
+  }
+  int fd = open(path, O_RDWR | O_CREAT | O_TRUNC, 0);
+
+  if (fd < 0) {
+    ESP_LOGE(TAG, "Failed to open file for writing");
+    return;
+  }
+
+  ESP_LOGI(TAG, "Writing to the file");
+  write(fd, json_string, strlen(json_string));
+  close(fd);
+
+  xQueueSendToBack(
+      event_queue_handle_,
+      &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_NEW_DATA},
+      portMAX_DELAY);
+}
+
+/**
+ * @brief Initialize the data logging task.
+ *
+ */
+void init() {
+  event_queue_handle_ =
+      xQueueCreateStatic(QUEUE_LENGTH, EVENT_QUEUE_ITEM_SIZE,
+                         event_queue_storage_area, &event_queue_);
+
+  // Create data directory if it does not exist
+  int ret = mkdir(data_dir_path, 0777);
+  if (ret < 0) {
+    ESP_LOGE(TAG, "Failed to create a new directory: %i", ret);
+  } else {
+    ESP_LOGI(TAG, "Data directory created successfully: %s", data_dir_path);
   }
 }
 
-void reschedule_message(const int message_id) {
-  for (int i = 0; i < MAX_SAVED_MESSAGES; i++) {
-    const int search_index =
-        (MAX_SAVED_MESSAGES + free_sent_map_index - i - 1) % MAX_SAVED_MESSAGES;
-    if (sent_map[search_index].message_id == message_id) {
-      sent_map[search_index].status = SENT_MAP_SCHEDULED;
-      break;
-    }
-  }
+/**
+ * @brief Create a data logging task object
+ *
+ * @return TaskHandle_t
+ */
+TaskHandle_t create_data_logging_task() {
+  init(); // Initialize data logging system
+  // Static task without dynamic memory allocation
+  TaskHandle_t task_handle = xTaskCreateStatic(
+      data_logging_task, "DataLogging", /* Task Name */
+      STACK_SIZE,           /* Number of indexes in the xStack array. */
+      NULL,                 /* No Parameter */
+      tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
+      xStack,               /* Array to use as the task's stack. */
+      &xTaskBuffer);        /* Variable to hold the task's data structure. */
+  return task_handle;
 }
