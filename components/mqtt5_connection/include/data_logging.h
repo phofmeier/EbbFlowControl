@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef COMPONENTS_DATA_LOGGING_INCLUDE_DATA_LOGGING
-#define COMPONENTS_DATA_LOGGING_INCLUDE_DATA_LOGGING
+#ifndef COMPONENTS_MQTT5_CONNECTION_INCLUDE_DATA_LOGGING
+#define COMPONENTS_MQTT5_CONNECTION_INCLUDE_DATA_LOGGING
 
 #include "cJSON.h"
 #include "freertos/FreeRTOS.h"
@@ -74,4 +74,4 @@ void set_data_published(unsigned int id);
  */
 TaskHandle_t create_data_logging_task();
 
-#endif /* COMPONENTS_DATA_LOGGING_INCLUDE_DATA_LOGGING */
+#endif /* COMPONENTS_MQTT5_CONNECTION_INCLUDE_DATA_LOGGING */
