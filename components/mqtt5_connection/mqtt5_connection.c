@@ -130,7 +130,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
   esp_mqtt_event_handle_t event = event_data;
   esp_mqtt_client_handle_t client = event->client;
 
-  ESP_LOGD(TAG, "free heap size is %" PRIu32 ", minimum %" PRIu32,
+  ESP_LOGI(TAG, "free heap size is %" PRIu32 ", minimum %" PRIu32,
            esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
 
   switch ((esp_mqtt_event_id_t)event_id) {
