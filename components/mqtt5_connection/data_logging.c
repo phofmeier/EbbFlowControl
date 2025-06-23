@@ -16,8 +16,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#define TIMEOUT_SENT_DATA 1 * 60 * 1000 * portTICK_PERIOD_MS
-#define TIMEOUT_DISCONNECTED 12 * 60 * 60 * 1000 * portTICK_PERIOD_MS
+#define TIMEOUT_SENT_DATA 1 * 60 * 1000 / portTICK_PERIOD_MS
+#define TIMEOUT_DISCONNECTED 2 * 60 * 60 * 1000 / portTICK_PERIOD_MS
 #define FORBIDDEN_PATH_CHAR '='
 static const char *TAG = "data_logging";
 
@@ -323,17 +323,17 @@ void data_logging_task(void *arg) {
         ESP_LOGI(TAG, "New data event received");
         schedule_next_data_send();
         timeout = TIMEOUT_SENT_DATA;
-        break;
+        continue;
       case DATA_LOGGING_EVENT_CONNECTED:
         ESP_LOGI(TAG, "Connected event received");
         schedule_next_data_send();
         timeout = TIMEOUT_SENT_DATA;
-        break;
+        continue;
       case DATA_LOGGING_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "Disconnected event received");
         current_file_path_in_queue_[0] = '\0';
         timeout = TIMEOUT_DISCONNECTED;
-        break;
+        continue;
       case DATA_LOGGING_EVENT_DATA_PUBLISHED:
         ESP_LOGI(TAG, "Data published event received");
         if (event.id != current_data_id_) {
@@ -344,21 +344,21 @@ void data_logging_task(void *arg) {
         remove_queued_file_from_storage();
         schedule_next_data_send();
         timeout = TIMEOUT_SENT_DATA;
-        break;
+        continue;
       default:
         ESP_LOGW(TAG, "Unknown event type: %d", event.type);
         timeout = TIMEOUT_SENT_DATA;
-        break;
+        continue;
       }
     } else {
       ESP_LOGW(TAG, "Event queue timeout");
+      // Somehow we run into a timeout during sending data. This should not
+      // happen. Just reset and try again.
+      current_file_path_in_queue_[0] = '\0';
+      schedule_next_data_send();
       if (current_file_path_in_queue_[0] == '\0') {
         timeout = TIMEOUT_DISCONNECTED;
       } else {
-        // Somehow we run into a timeout during sending data. This should not
-        // happen. Just reset and try again.
-        current_file_path_in_queue_[0] = '\0';
-        schedule_next_data_send();
         timeout = TIMEOUT_SENT_DATA;
       }
     }
@@ -371,6 +371,14 @@ unsigned int increment_file_id() {
     next_file_id_ = 0;
   }
   return next_file_id_;
+}
+
+void log_heap_size() {
+  cJSON *data = cJSON_CreateObject();
+  cJSON_AddNumberToObject(data, "free_heap", esp_get_free_heap_size());
+  cJSON_AddNumberToObject(data, "min_free_heap",
+                          esp_get_minimum_free_heap_size());
+  add_timed_data("ef/efc/timed/heap", data);
 }
 
 void add_timed_data(const char *topic, cJSON *data) {
