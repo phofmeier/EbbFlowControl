@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define VERSION_STRING "v0.0.1"
+
 static const char *TAG = "mqtt5";
 
 /** Number of current connection attempts.*/
@@ -39,11 +41,12 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
   int rssi_level = -100;
   ESP_ERROR_CHECK(wifi_utils_get_connection_strength(&rssi_level));
 
-  char connected_message[58];
-  sprintf(connected_message,
-          "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": %i}",
-          configuration.id, rssi_level);
-  static const int connected_message_length = 58;
+  char connected_message[78];
+  int connected_message_length =
+      sprintf(connected_message,
+              "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": "
+              "%i, \"version\": \"%s\"}",
+              configuration.id, rssi_level, VERSION_STRING);
 
   static esp_mqtt5_publish_property_config_t status_publish_property = {
       .payload_format_indicator = 1,
@@ -143,6 +146,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     send_status_connected(client);
     send_current_configuration(client);
     set_connected();
+    log_heap_size();
     break;
   case MQTT_EVENT_DISCONNECTED:
     mqtt5_connected = false;
@@ -155,6 +159,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     print_user_property(event->property->user_property);
     disconnect_counter_++; // Increased after each disconnect.
     set_disconnected();
+    log_heap_size();
     break;
   case MQTT_EVENT_SUBSCRIBED:
     ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -223,6 +228,10 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
 }
 
 int mqtt_sent_message(const char *topic, const char *data) {
+  if (!mqtt5_connected) {
+    return -1;
+  }
+
   static esp_mqtt5_publish_property_config_t config_publish_property = {
       .payload_format_indicator = 1,
       .message_expiry_interval = 1000,
@@ -263,9 +272,11 @@ void mqtt5_conn_init() {
 
   // Build last will message as json
   ESP_LOGI(TAG, "Build last will %3u", configuration.id);
-  char last_will_message[42];
-  sprintf(last_will_message, "{\"id\": %3u, \"connection\": \"disconnected\"}",
-          configuration.id);
+  char last_will_message[74];
+  int last_will_message_count = sprintf(
+      last_will_message,
+      "{\"id\": %3u, \"connection\": \"disconnected\", \"version\": \"%s\"}",
+      configuration.id, VERSION_STRING);
 
   esp_mqtt_client_config_t mqtt5_cfg = {
       .broker.address.uri = CONFIG_MQTT_BROKER_URI,
@@ -276,7 +287,7 @@ void mqtt5_conn_init() {
       .credentials.authentication.password = CONFIG_MQTT_PASSWORD,
       .session.last_will.topic = CONFIG_MQTT_STATUS_TOPIC,
       .session.last_will.msg = last_will_message,
-      .session.last_will.msg_len = sizeof(last_will_message),
+      .session.last_will.msg_len = last_will_message_count,
       .session.last_will.qos = 1,
       .session.last_will.retain = true,
   };

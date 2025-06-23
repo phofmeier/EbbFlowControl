@@ -25,6 +25,7 @@ void stop_pump() {
   cJSON *data = cJSON_CreateObject();
   cJSON_AddStringToObject(data, "status", "stop");
   add_timed_data(CONFIG_MQTT_PUMP_STATUS_TOPIC, data);
+  log_heap_size();
 }
 
 /**
@@ -36,6 +37,7 @@ void start_pump() {
   cJSON *data = cJSON_CreateObject();
   cJSON_AddStringToObject(data, "status", "start");
   add_timed_data(CONFIG_MQTT_PUMP_STATUS_TOPIC, data);
+  log_heap_size();
 }
 
 /**
@@ -110,6 +112,7 @@ void pump_control_task(void *pvParameters) {
   // setup task
   signed short last_run = get_cur_min_of_day();
   enum State state = WAITING;
+  stop_pump();
   time_t pumping_start_time;
   time_t now;
 
@@ -180,7 +183,6 @@ void pump_control_task(void *pvParameters) {
 TaskHandle_t create_pump_control_task() {
   // initialize GPIO
   configure_pump_output();
-  stop_pump();
 
   // Static task without dynamic memory allocation
   TaskHandle_t task_handle = xTaskCreateStatic(
