@@ -146,7 +146,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     send_status_connected(client);
     send_current_configuration(client);
     set_connected();
-    log_heap_size();
+    // log_heap_size();
     break;
   case MQTT_EVENT_DISCONNECTED:
     mqtt5_connected = false;
@@ -159,7 +159,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     print_user_property(event->property->user_property);
     disconnect_counter_++; // Increased after each disconnect.
     set_disconnected();
-    log_heap_size();
+    // log_heap_size();
     break;
   case MQTT_EVENT_SUBSCRIBED:
     ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
