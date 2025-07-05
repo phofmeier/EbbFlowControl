@@ -45,7 +45,7 @@ struct data_logging_event_t {
  * @brief Log the free heap size for debugging.
  *
  */
-void log_heap_size();
+// void log_heap_size();
 
 /**
  * @brief Add new data to the data logging queue.
@@ -53,8 +53,7 @@ void log_heap_size();
  * @param topic Topic to which the data is going to be added.
  * @param data Data to be added in cJSON format.
  */
-void add_timed_data(const char *topic, cJSON *data);
-
+void add_pump_data_item(bool pump_on);
 /**
  * @brief Set a connected event.
  *
