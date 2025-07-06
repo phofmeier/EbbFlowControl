@@ -45,7 +45,7 @@ struct data_logging_event_t {
  * @brief Log the free heap size for debugging.
  *
  */
-// void log_heap_size();
+void log_heap_size();
 
 /**
  * @brief Add new data to the data logging queue.

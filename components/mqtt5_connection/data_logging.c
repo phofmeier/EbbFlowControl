@@ -1,6 +1,7 @@
 #include "data_logging.h"
 
 #include "configuration.h"
+#include "memory_data_store.h"
 #include "mqtt5_connection.h"
 #include "pump_data_store.h"
 
@@ -64,6 +65,14 @@ static uint8_t event_queue_storage_area[QUEUE_LENGTH * EVENT_QUEUE_ITEM_SIZE];
 
 static int current_data_id_ = -1;
 
+enum data_store_type {
+  UNKNOWN,
+  MEMORY_DATA_STORE,
+  PUMP_DATA_STORE,
+};
+
+enum data_store_type current_data_store_ = UNKNOWN;
+
 // void list_dir(char *path) {
 //   DIR *dp;
 //   struct dirent *ep;
@@ -103,6 +112,28 @@ void set_data_published(unsigned int id) {
                    portMAX_DELAY);
 }
 
+bool schedule_next_memory_data_send() {
+  struct memory_data_item_t memory_data_item;
+  const bool data_available =
+      memory_data_store_pop_and_stash(&memory_data_item);
+  if (!data_available) {
+    ESP_LOGW(TAG, "No data available to send");
+    return false;
+  }
+  cJSON *data = memory_data_item_to_json(&memory_data_item);
+  char *data_json_string = cJSON_PrintUnformatted(data);
+  current_data_id_ = mqtt_sent_message("ef/efc/timed/heap", data_json_string);
+  cJSON_Delete(data);
+  cJSON_free(data_json_string);
+
+  if (current_data_id_ < 0) {
+    ESP_LOGE(TAG, "Failed to send memory data");
+    memory_data_store_restore_stack();
+    return false;
+  }
+  return true;
+}
+
 bool schedule_next_pump_data_send() {
   struct pump_data_item_t pump_data_item;
   const bool data_available = pump_data_store_pop_and_stash(&pump_data_item);
@@ -115,8 +146,8 @@ bool schedule_next_pump_data_send() {
   current_data_id_ =
       mqtt_sent_message(CONFIG_MQTT_PUMP_STATUS_TOPIC, data_json_string);
   cJSON_Delete(data);
-  free(data_json_string);
-  free(data);
+  cJSON_free(data_json_string);
+
   if (current_data_id_ < 0) {
     ESP_LOGE(TAG, "Failed to send pump data");
     pump_data_store_restore_stack();
@@ -136,15 +167,36 @@ void schedule_next_data_send() {
     ESP_LOGW(TAG, "Data already being sent, skipping new data");
     return;
   }
-  if (!schedule_next_pump_data_send()) {
-    ESP_LOGE(TAG, "Failed to schedule next data send");
+  if (schedule_next_pump_data_send()) {
+    current_data_store_ = PUMP_DATA_STORE;
+    ESP_LOGE(TAG, "Successfully scheduled next pump data send");
+  } else if (schedule_next_memory_data_send()) {
+    current_data_store_ = MEMORY_DATA_STORE;
+    ESP_LOGE(TAG, "Successfully scheduled next memory data send");
+  } else {
+    ESP_LOGW(TAG, "Not able to schedule data.");
+    current_data_store_ = UNKNOWN;
   }
-  // Try sending from other store
 }
 
 void restore_scheduled_data() {
   if (current_data_id_ >= 0) {
-    pump_data_store_restore_stack();
+    switch (current_data_store_) {
+    case UNKNOWN:
+      ESP_LOGI(TAG, "Restoring unknown data store");
+      break;
+    case PUMP_DATA_STORE:
+      pump_data_store_restore_stack();
+      ESP_LOGI(TAG, "Restoring pump data store");
+      break;
+    case MEMORY_DATA_STORE:
+      memory_data_store_restore_stack();
+      ESP_LOGI(TAG, "Restoring memory data store");
+      break;
+
+    default:
+      break;
+    }
   }
 }
 
@@ -154,7 +206,10 @@ void restore_scheduled_data() {
  * Happens after the data was successfully sent to the MQTT broker.
  *
  */
-void remove_queued_file_from_storage() { current_data_id_ = -1; }
+void remove_queued_file_from_storage() {
+  current_data_id_ = -1;
+  current_data_store_ = UNKNOWN;
+}
 
 /**
  * @brief Task to handle data logging events.
@@ -223,20 +278,20 @@ void data_logging_task(void *arg) {
   }
 }
 
-// void log_heap_size() {
-//   cJSON *data = cJSON_CreateObject();
-//   cJSON_AddNumberToObject(data, "free_heap", esp_get_free_heap_size());
-//   cJSON_AddNumberToObject(data, "min_free_heap",
-//                           esp_get_minimum_free_heap_size());
-//   u_int64_t out_total_bytes;
-//   u_int64_t out_free_bytes;
+void log_heap_size() {
+  u_int64_t out_total_bytes;
+  u_int64_t out_free_bytes;
+  esp_vfs_fat_info("/store", &out_total_bytes, &out_free_bytes);
 
-//   esp_vfs_fat_info("/store", &out_total_bytes, &out_free_bytes);
-//   cJSON_AddNumberToObject(data, "store_total_bytes", out_total_bytes);
-//   cJSON_AddNumberToObject(data, "store_free_bytes", out_free_bytes);
+  memory_data_store_push(esp_get_free_heap_size(),
+                         esp_get_minimum_free_heap_size(), out_total_bytes,
+                         out_free_bytes);
 
-//   add_timed_data("ef/efc/timed/heap", data);
-// }
+  xQueueSendToBack(
+      event_queue_handle_,
+      &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_NEW_DATA},
+      portMAX_DELAY);
+}
 
 /**
  * @brief Initialize the data logging task.
@@ -247,6 +302,7 @@ void init() {
       xQueueCreateStatic(QUEUE_LENGTH, EVENT_QUEUE_ITEM_SIZE,
                          event_queue_storage_area, &event_queue_);
   pump_data_store_init();
+  memory_data_store_init();
 }
 
 void add_pump_data_item(bool pump_on) {
