@@ -29,7 +29,7 @@ static const char *data_dir_path_ = "/store/log_data/pump";
 static unsigned int next_file_id_ =
     0; // File ID for the next file to be created
 
-unsigned int increment_file_id() {
+static inline unsigned int increment_file_id() {
   next_file_id_++;
   if (next_file_id_ > MAX_FILE_ID) {
     next_file_id_ = 0;
@@ -98,6 +98,7 @@ void pump_data_store_read_from_disc_() {
       }
     }
   }
+  closedir(root_dir);
 }
 
 void pump_data_store_init() {
