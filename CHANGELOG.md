@@ -13,6 +13,8 @@ Use the following labels:
 
 ## [UNRELEASED]
 
+## [0.0.1] - 2025-07-11
+
 ### Added
 - [Patch] Save data logs to the flash if not connected.
 - [Patch] Save logging messages if not connected to sent later.
