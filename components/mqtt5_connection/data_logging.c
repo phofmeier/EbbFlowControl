@@ -18,8 +18,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#define TIMEOUT_SENT_DATA 1 * 60 * 1000 / portTICK_PERIOD_MS
-#define TIMEOUT_DISCONNECTED 2 * 60 * 60 * 1000 / portTICK_PERIOD_MS
+/** @brief Timeout waiting for sending data via mqtt */
+#define TIMEOUT_SENT_DATA 1 * 60 * 1000 / portTICK_PERIOD_MS // 1 minute
+/** @brief Timeout waiting after disconnected or if nothing to do. */
+#define TIMEOUT_DISCONNECTED 2 * 60 * 60 * 1000 / portTICK_PERIOD_MS // 2 hours
 
 static const char *TAG = "data_logging";
 
@@ -27,7 +29,7 @@ static const char *TAG = "data_logging";
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 8096
+#define STACK_SIZE 1024
 
 /* Structure that will hold the TCB of the task being created. */
 static StaticTask_t xTaskBuffer;
@@ -122,7 +124,7 @@ bool schedule_next_memory_data_send() {
   }
   cJSON *data = memory_data_item_to_json(&memory_data_item);
   char *data_json_string = cJSON_PrintUnformatted(data);
-  current_data_id_ = mqtt_sent_message("ef/efc/timed/heap", data_json_string);
+  current_data_id_ = mqtt5_sent_message("ef/efc/timed/heap", data_json_string);
   cJSON_Delete(data);
   cJSON_free(data_json_string);
 
@@ -144,7 +146,7 @@ bool schedule_next_pump_data_send() {
   cJSON *data = pump_data_item_to_json(&pump_data_item);
   char *data_json_string = cJSON_PrintUnformatted(data);
   current_data_id_ =
-      mqtt_sent_message(CONFIG_MQTT_PUMP_STATUS_TOPIC, data_json_string);
+      mqtt5_sent_message(CONFIG_MQTT_PUMP_STATUS_TOPIC, data_json_string);
   cJSON_Delete(data);
   cJSON_free(data_json_string);
 

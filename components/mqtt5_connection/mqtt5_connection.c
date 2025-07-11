@@ -225,7 +225,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
   }
 }
 
-int mqtt_sent_message(const char *topic, const char *data) {
+int mqtt5_sent_message(const char *topic, const char *data) {
   if (!mqtt5_connected) {
     return -1;
   }
