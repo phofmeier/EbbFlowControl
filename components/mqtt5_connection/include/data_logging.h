@@ -66,6 +66,14 @@ void set_disconnected();
 void set_data_published(unsigned int id);
 
 /**
+ * @brief Initialize the data logging system.
+ *
+ * This function initializes the data logging system, including the event queue
+ * and data stores.
+ */
+void data_logging_init();
+
+/**
  * @brief Create a data logging task.
  *
  * @return TaskHandle_t

@@ -299,7 +299,7 @@ void log_heap_size() {
  * @brief Initialize the data logging task.
  *
  */
-void init() {
+void data_logging_init() {
   event_queue_handle_ =
       xQueueCreateStatic(QUEUE_LENGTH, EVENT_QUEUE_ITEM_SIZE,
                          event_queue_storage_area, &event_queue_);
@@ -322,7 +322,6 @@ void add_pump_data_item(bool pump_on) {
  * @return TaskHandle_t
  */
 TaskHandle_t create_data_logging_task() {
-  init(); // Initialize data logging system
   // Static task without dynamic memory allocation
   TaskHandle_t task_handle = xTaskCreateStatic(
       data_logging_task, "DataLogging", /* Task Name */
