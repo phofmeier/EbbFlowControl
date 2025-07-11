@@ -2,6 +2,7 @@
 
 #include "config_connection.h"
 #include "data_logging.h"
+#include "esp_app_desc.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
@@ -13,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define VERSION_STRING "v0.0.1"
+#define VERSION_STRING esp_app_get_description()->version
 
 static const char *TAG = "mqtt5";
 
@@ -41,7 +42,7 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
   int rssi_level = -100;
   ESP_ERROR_CHECK(wifi_utils_get_connection_strength(&rssi_level));
 
-  char connected_message[78];
+  char connected_message[112];
   int connected_message_length =
       sprintf(connected_message,
               "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": "
@@ -251,6 +252,8 @@ int mqtt5_sent_message(const char *topic, const char *data) {
 }
 
 void mqtt5_conn_init() {
+  data_logging_init();
+
   s_mqtt5_event_group_ = xEventGroupCreate();
 
   esp_mqtt5_connection_property_config_t connect_property = {
@@ -270,7 +273,7 @@ void mqtt5_conn_init() {
 
   // Build last will message as json
   ESP_LOGI(TAG, "Build last will %3u", configuration.id);
-  char last_will_message[74];
+  char last_will_message[88];
   int last_will_message_count = sprintf(
       last_will_message,
       "{\"id\": %3u, \"connection\": \"disconnected\", \"version\": \"%s\"}",
