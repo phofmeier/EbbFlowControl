@@ -16,7 +16,7 @@ void mqtt5_conn_init();
  * @param data data to send.
  * @return int message id of the sent message. Negative if failed.
  */
-int mqtt_sent_message(const char *topic, const char *data);
+int mqtt5_sent_message(const char *topic, const char *data);
 
 /**
  * @brief Task to check the connection and retry if it fails.

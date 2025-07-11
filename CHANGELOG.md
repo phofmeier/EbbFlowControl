@@ -14,6 +14,7 @@ Use the following labels:
 ## [UNRELEASED]
 
 ### Added
+- [Patch] Save data logs to the flash if not connected.
 - [Patch] Save logging messages if not connected to sent later.
 - [Patch] Send value for start and stop of pump.
 - [Patch] Wifi and MQTT connection only tries to connect every 10 min after multiple failed attempts.
