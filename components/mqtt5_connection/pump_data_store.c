@@ -2,8 +2,8 @@
 #include "configuration.h"
 
 #include "esp_log.h"
+#include "esp_spiffs.h"
 #include "esp_vfs.h"
-#include "esp_vfs_fat.h"
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/errno.h>
@@ -16,9 +16,11 @@ const static char *TAG = "pump_data_store";
 SemaphoreHandle_t pump_data_items_mutex = NULL;
 StaticSemaphore_t pump_data_items_mutex_buffer;
 
-#define MAX_PUMP_DATA_ITEMS 20
-#define MAX_PATH_SIZE 31
-#define MAX_FILE_ID 99999
+#define MAX_PUMP_DATA_ITEMS                                                    \
+  (CONFIG_MQTT_DATA_LOGGING_PUMP_STORE_SIZE_MULTIPLE *                         \
+   (CONFIG_SPIFFS_PAGE_SIZE / sizeof(struct pump_data_item_t)))
+
+#define MAX_FILE_ID 9999
 static struct pump_data_item_t pump_data_items[MAX_PUMP_DATA_ITEMS];
 static unsigned int pump_data_items_count = 0;
 static struct pump_data_item_t pump_data_stack_item_;
@@ -42,11 +44,11 @@ static inline unsigned int increment_file_id() {
  *
  */
 void pump_data_store_write_to_disc_() {
-  char path[MAX_PATH_SIZE];
-  snprintf(path, sizeof(path), "%s/%05u.bin", data_dir_path_,
+  char path[CONFIG_SPIFFS_OBJ_NAME_LEN];
+  snprintf(path, sizeof(path), "%s/%04u.bin", data_dir_path_,
            increment_file_id());
   for (size_t i = 0; i < MAX_FILE_ID && access(path, F_OK) == 0; i++) {
-    snprintf(path, sizeof(path), "%s/%05u.bin", data_dir_path_,
+    snprintf(path, sizeof(path), "%s/%04u.bin", data_dir_path_,
              increment_file_id());
   }
   int fd = open(path, O_RDWR | O_CREAT | O_TRUNC, 0);
@@ -81,8 +83,8 @@ void pump_data_store_read_from_disc_() {
     if (strlen(dir_entry->d_name) > 10) {
       continue;
     }
-    char path[MAX_PATH_SIZE];
-    snprintf(path, sizeof(path), "%s/%.9s", data_dir_path_, dir_entry->d_name);
+    char path[CONFIG_SPIFFS_OBJ_NAME_LEN];
+    snprintf(path, sizeof(path), "%s/%.8s", data_dir_path_, dir_entry->d_name);
     ESP_LOGI(TAG, "Reading pump data from file: %s", path);
     int fd = open(path, O_RDONLY);
     if (fd >= 0) {
@@ -107,6 +109,8 @@ void pump_data_store_init() {
   xSemaphoreGive(pump_data_items_mutex);
   pump_data_items_count = 0;
   mkdir(data_dir_path_, 0777);
+  ESP_LOGI(TAG, "Pump data store initialized with %d items",
+           MAX_PUMP_DATA_ITEMS);
 }
 
 void pump_data_store_restore_stack() {
