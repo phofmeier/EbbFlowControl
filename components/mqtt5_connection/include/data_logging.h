@@ -1,34 +1,24 @@
 
-/**
- * interface to add data
- * all data is saved to a storage fat on flash
- * if mqtt connection is available
- * send data directly
- * wait until data was sent successfully before deleting
- * else: just store data
- * if connection gets reestablished
- * send all data which was not sended yet
- *
- * each topic gets own folder
- * each data point gets own file
- * file name is a unique id
- *
- * publish data topic and id to mqtt interface
- * mqtt returns ids of sent data. -> delete data
- *
- * use two queues
- * one data in queue where other tasks can add data
- * on data out queue where data is sent to mqtt
- *
- */
-
 #ifndef COMPONENTS_MQTT5_CONNECTION_INCLUDE_DATA_LOGGING
 #define COMPONENTS_MQTT5_CONNECTION_INCLUDE_DATA_LOGGING
+/**
+ * @brief Data logging interface
+ *
+ * This interface provides functions to log data to a storage on flash.
+ * If an MQTT connection is available, data is sent directly.
+ * If the connection is lost, data is stored and sent when the connection is
+ * reestablished.
+ *
+ */
 
 #include "cJSON.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+/**
+ * @brief Enum for data logging event types.
+ *
+ */
 enum data_logging_event_type {
   DATA_LOGGING_EVENT_NEW_DATA = 0,
   DATA_LOGGING_EVENT_CONNECTED = 1,
@@ -36,6 +26,9 @@ enum data_logging_event_type {
   DATA_LOGGING_EVENT_DATA_PUBLISHED = 3,
 };
 
+/**
+ * @brief Struct for data logging events.
+ */
 struct data_logging_event_t {
   enum data_logging_event_type type;
   int id;

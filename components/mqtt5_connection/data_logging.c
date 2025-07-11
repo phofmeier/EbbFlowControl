@@ -6,8 +6,8 @@
 #include "pump_data_store.h"
 
 #include "esp_log.h"
+#include "esp_spiffs.h"
 #include "esp_vfs.h"
-#include "esp_vfs_fat.h"
 #include "freertos/queue.h"
 #include <dirent.h>
 #include <fcntl.h>
@@ -279,13 +279,13 @@ void data_logging_task(void *arg) {
 }
 
 void log_heap_size() {
-  u_int64_t out_total_bytes;
-  u_int64_t out_free_bytes;
-  esp_vfs_fat_info("/store", &out_total_bytes, &out_free_bytes);
+  size_t out_total_bytes;
+  size_t out_used_bytes;
+  esp_spiffs_info("storage", &out_total_bytes, &out_used_bytes);
 
   memory_data_store_push(esp_get_free_heap_size(),
                          esp_get_minimum_free_heap_size(), out_total_bytes,
-                         out_free_bytes);
+                         out_used_bytes);
 
   xQueueSendToBack(
       event_queue_handle_,
@@ -311,6 +311,7 @@ void add_pump_data_item(bool pump_on) {
       event_queue_handle_,
       &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_NEW_DATA},
       portMAX_DELAY);
+  log_heap_size();
 }
 
 /**

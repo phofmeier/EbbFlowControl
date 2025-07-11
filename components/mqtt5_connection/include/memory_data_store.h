@@ -10,8 +10,8 @@ struct memory_data_item_t {
   uint32_t free_heap_size;     // free heap size at the time of data collection
   uint32_t min_free_heap_size; // minimum free heap size at the time of data
                                // collection
-  u_int64_t store_total_bytes; // total bytes of the store
-  u_int64_t store_free_bytes;  // free bytes of the store
+  size_t store_total_bytes;    // total bytes of the store
+  size_t store_used_bytes;     // used bytes of the store
 };
 
 /**
@@ -32,12 +32,12 @@ void memory_data_store_restore_stack();
  * @param free_heap_size current free heap size
  * @param min_free_heap_size minimum free heap size
  * @param store_total_bytes total bytes of the store
- * @param store_free_bytes free bytes of the store
+ * @param store_used_bytes used bytes of the store
  */
 void memory_data_store_push(const uint32_t free_heap_size,
                             const uint32_t min_free_heap_size,
-                            const u_int64_t store_total_bytes,
-                            const u_int64_t store_free_bytes);
+                            const size_t store_total_bytes,
+                            const size_t store_used_bytes);
 
 /**
  * @brief Pop a memory data item from the store and save it on a stash.

@@ -78,5 +78,5 @@ void send_current_configuration(esp_mqtt_client_handle_t client) {
   config_publish_property.user_property = NULL;
   ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
   cJSON_Delete(json_config);
-  free(json_string);
+  cJSON_free(json_string);
 }

@@ -1,5 +1,6 @@
+#include "esp_log.h"
+#include "esp_spiffs.h"
 #include "esp_vfs.h"
-#include "esp_vfs_fat.h"
 #include <esp_err.h>
 #include <nvs_flash.h>
 #include <stdio.h>
@@ -20,22 +21,23 @@ void initialize_nvs() {
   ESP_ERROR_CHECK(ret);
 }
 
-void initialize_fat_storage() {
-  // Handle of the wear levelling library instance
-  static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
+/**
+ * @brief Initialize th SPIFFS filesystem for storing logging data.
+ *
+ */
+void initialize_spiffs_storage() {
   const char *base_path = "/store";
-  const esp_vfs_fat_mount_config_t mount_config = {
-      .max_files = 2,
-      .format_if_mount_failed = true,
-      .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
-      .use_one_fat = false,
-  };
-  esp_err_t ret = esp_vfs_fat_spiflash_mount_rw_wl(base_path, "storage",
-                                                   &mount_config, &s_wl_handle);
+  const esp_vfs_spiffs_conf_t mount_config = {.base_path = base_path,
+                                              .partition_label = "storage",
+                                              .max_files = 5,
+                                              .format_if_mount_failed = true};
+  esp_err_t ret = esp_vfs_spiffs_register(&mount_config);
+
   if (ret != ESP_OK) {
-    ESP_LOGE("FAT", "Failed to mount FAT filesystem: %s", esp_err_to_name(ret));
+    ESP_LOGE("SPIFFS", "Failed to mount SPIFFS filesystem: %s",
+             esp_err_to_name(ret));
   } else {
-    ESP_LOGI("FAT", "FAT filesystem mounted successfully");
+    ESP_LOGI("SPIFFS", "SPIFFS filesystem mounted successfully");
   }
 }
 
@@ -44,7 +46,7 @@ void app_main(void) {
   configure_pump_output();
   // Initialize storage
   initialize_nvs();
-  initialize_fat_storage();
+  initialize_spiffs_storage();
 
   load_configuration();
 

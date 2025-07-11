@@ -2,8 +2,8 @@
 #include "configuration.h"
 
 #include "esp_log.h"
+#include "esp_spiffs.h"
 #include "esp_vfs.h"
-#include "esp_vfs_fat.h"
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/errno.h>
@@ -16,15 +16,16 @@ const static char *TAG = "memory_data_store";
 SemaphoreHandle_t memory_data_items_mutex = NULL;
 StaticSemaphore_t memory_data_items_mutex_buffer;
 
-#define MAX_MEMORY_DATA_ITEMS 20
-#define MAX_PATH_SIZE 33
-#define MAX_FILE_ID 99999
+#define MAX_MEMORY_DATA_ITEMS                                                  \
+  (CONFIG_MQTT_DATA_LOGGING_MEMORY_STORE_SIZE_MULTIPLE *                       \
+   (CONFIG_SPIFFS_PAGE_SIZE / sizeof(struct memory_data_item_t)))
+#define MAX_FILE_ID 9999
 static struct memory_data_item_t memory_data_items[MAX_MEMORY_DATA_ITEMS];
 static unsigned int memory_data_items_count = 0;
 static struct memory_data_item_t memory_data_stack_item_;
 static bool is_stack_restored = false;
 
-static const char *data_dir_path_ = "/store/log_data/memory";
+static const char *data_dir_path_ = "/store/log_data/mem";
 
 static unsigned int next_file_id_ =
     0; // File ID for the next file to be created
@@ -42,7 +43,7 @@ static inline unsigned int increment_file_id() {
  *
  */
 void memory_data_store_write_to_disc_() {
-  char path[MAX_PATH_SIZE];
+  char path[CONFIG_SPIFFS_OBJ_NAME_LEN];
   snprintf(path, sizeof(path), "%s/%05u.bin", data_dir_path_,
            increment_file_id());
   for (size_t i = 0; i < MAX_FILE_ID && access(path, F_OK) == 0; i++) {
@@ -81,8 +82,8 @@ void memory_data_store_read_from_disc_() {
     if (strlen(dir_entry->d_name) > 10) {
       continue;
     }
-    char path[MAX_PATH_SIZE];
-    snprintf(path, sizeof(path), "%s/%.9s", data_dir_path_, dir_entry->d_name);
+    char path[CONFIG_SPIFFS_OBJ_NAME_LEN];
+    snprintf(path, sizeof(path), "%s/%.8s", data_dir_path_, dir_entry->d_name);
     ESP_LOGI(TAG, "Reading memory data from file: %s", path);
     int fd = open(path, O_RDONLY);
     if (fd >= 0) {
@@ -107,6 +108,8 @@ void memory_data_store_init() {
   xSemaphoreGive(memory_data_items_mutex);
   memory_data_items_count = 0;
   mkdir(data_dir_path_, 0777);
+  ESP_LOGI(TAG, "Memory data store initialized with %d items",
+           MAX_MEMORY_DATA_ITEMS);
 }
 
 void memory_data_store_restore_stack() {
@@ -118,8 +121,8 @@ void memory_data_store_restore_stack() {
 
 void memory_data_store_push(const uint32_t free_heap_size,
                             const uint32_t min_free_heap_size,
-                            const u_int64_t store_total_bytes,
-                            const u_int64_t store_free_bytes) {
+                            const size_t store_total_bytes,
+                            const size_t store_used_bytes) {
   if (xSemaphoreTake(memory_data_items_mutex, portMAX_DELAY) == pdTRUE) {
     time_t current_time;
     time(&current_time);
@@ -133,8 +136,8 @@ void memory_data_store_push(const uint32_t free_heap_size,
         min_free_heap_size;
     memory_data_items[memory_data_items_count].store_total_bytes =
         store_total_bytes;
-    memory_data_items[memory_data_items_count].store_free_bytes =
-        store_free_bytes;
+    memory_data_items[memory_data_items_count].store_used_bytes =
+        store_used_bytes;
     memory_data_items_count++;
 
     xSemaphoreGive(memory_data_items_mutex);
@@ -150,7 +153,7 @@ bool memory_data_store_pop_and_stash(struct memory_data_item_t *item) {
       item->free_heap_size = memory_data_stack_item_.free_heap_size;
       item->min_free_heap_size = memory_data_stack_item_.min_free_heap_size;
       item->store_total_bytes = memory_data_stack_item_.store_total_bytes;
-      item->store_free_bytes = memory_data_stack_item_.store_free_bytes;
+      item->store_used_bytes = memory_data_stack_item_.store_used_bytes;
       xSemaphoreGive(memory_data_items_mutex);
       return true;
     }
@@ -193,7 +196,7 @@ cJSON *memory_data_item_to_json(const struct memory_data_item_t *item) {
   cJSON_AddNumberToObject(data, "free_heap_size", item->free_heap_size);
   cJSON_AddNumberToObject(data, "min_free_heap_size", item->min_free_heap_size);
   cJSON_AddNumberToObject(data, "store_total_bytes", item->store_total_bytes);
-  cJSON_AddNumberToObject(data, "store_free_bytes", item->store_free_bytes);
+  cJSON_AddNumberToObject(data, "store_used_bytes", item->store_used_bytes);
 
   return data;
 }
