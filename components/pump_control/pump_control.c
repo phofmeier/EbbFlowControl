@@ -84,7 +84,7 @@ unsigned short get_cur_min_of_day() {
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 2548
+#define STACK_SIZE 1800
 
 /* Structure that will hold the TCB of the task being created. */
 
@@ -114,6 +114,8 @@ void pump_control_task(void *pvParameters) {
   static time_t now;
 
   for (;;) {
+    ESP_LOGD(TAG, "Stack high water mark %d",
+             uxTaskGetStackHighWaterMark(NULL));
     switch (state) {
     case PUMPING:
       time(&now);

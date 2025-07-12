@@ -49,10 +49,10 @@ static char path_[CONFIG_SPIFFS_OBJ_NAME_LEN];
  *
  */
 void memory_data_store_write_to_disc_() {
-  snprintf(path_, sizeof(path_), "%s/%05u.bin", data_dir_path_,
+  snprintf(path_, sizeof(path_), "%s/%04u.bin", data_dir_path_,
            increment_file_id());
   for (size_t i = 0; i < MAX_FILE_ID && access(path_, F_OK) == 0; i++) {
-    snprintf(path_, sizeof(path_), "%s/%05u.bin", data_dir_path_,
+    snprintf(path_, sizeof(path_), "%s/%04u.bin", data_dir_path_,
              increment_file_id());
   }
   int fd = open(path_, O_RDWR | O_CREAT | O_TRUNC, 0);

@@ -311,6 +311,8 @@ void mqtt5_conn_init() {
 
 void mqtt5_check_connection_task(void *pvParameters) {
   for (;;) {
+    ESP_LOGD(TAG, "Stack high water mark %d",
+             uxTaskGetStackHighWaterMark(NULL));
     EventBits_t bits =
         xEventGroupWaitBits(s_mqtt5_event_group_, MQTT5_CONNECTION_FAILED_BIT,
                             pdFALSE, pdFALSE, portMAX_DELAY);
@@ -326,7 +328,7 @@ void mqtt5_check_connection_task(void *pvParameters) {
 }
 
 /* Stack Size for the connection check task*/
-#define STACK_SIZE 2048
+#define STACK_SIZE 1400
 
 /* Structure that will hold the TCB of the task being created. */
 static StaticTask_t xTaskBuffer;
