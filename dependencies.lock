@@ -10,7 +10,7 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.4.1
+    version: 5.4.2
   mqtt5_connection:
     dependencies:
     - name: idf
