@@ -130,11 +130,13 @@ esp_err_t wifi_utils_connect_wifi_blocking() {
 
 void wifi_utils_check_connection_task(void *pvParameters) {
   for (;;) {
+    ESP_LOGD(TAG, "Stack high water mark %d",
+             uxTaskGetStackHighWaterMark(NULL));
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_FAIL_BIT,
                                            pdFALSE, pdFALSE, portMAX_DELAY);
     if (bits & WIFI_FAIL_BIT) {
       esp_wifi_stop();
-      ESP_LOGD(TAG, "Wifi connection failed. Wait before retrying.");
+      ESP_LOGI(TAG, "Wifi connection failed. Wait before retrying.");
       vTaskDelay(pdMS_TO_TICKS(CONFIG_WIFI_WAIT_TIME_BETWEEN_RETRY_MS));
       wifi_utils_connect();
     }
@@ -188,7 +190,7 @@ esp_err_t wifi_utils_get_connection_strength(int *rssi_level) {
 }
 
 /* Stack Size for the connection check task*/
-#define STACK_SIZE 2048
+#define STACK_SIZE 1500
 
 /* Structure that will hold the TCB of the task being created. */
 static StaticTask_t xTaskBuffer;

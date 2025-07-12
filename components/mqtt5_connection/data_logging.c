@@ -29,7 +29,7 @@ static const char *TAG = "data_logging";
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 3048
+#define STACK_SIZE 2000
 
 /* Structure that will hold the TCB of the task being created. */
 static StaticTask_t xTaskBuffer;
@@ -200,6 +200,8 @@ void restore_scheduled_data() {
       break;
     }
   }
+  current_data_id_ = -1;
+  current_data_store_ = UNKNOWN;
 }
 
 /**
@@ -227,6 +229,8 @@ void data_logging_task(void *arg) {
   static struct data_logging_event_t event;
   static BaseType_t queue_receive_result;
   while (1) {
+    ESP_LOGD(TAG, "Stack high water mark %d",
+             uxTaskGetStackHighWaterMark(NULL));
     // Wait for new data to be added
 
     queue_receive_result = xQueueReceive(event_queue_handle_, &event, timeout);
