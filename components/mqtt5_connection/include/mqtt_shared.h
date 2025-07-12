@@ -3,12 +3,6 @@
 
 #include "mqtt_client.h"
 
-/** client handle of the connection  */
-extern esp_mqtt_client_handle_t client_;
-
-/** Bool holding the current connection status. */
-extern bool mqtt5_connected;
-
 /**
  * @brief user property included in all messages
  *

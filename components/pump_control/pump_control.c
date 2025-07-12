@@ -40,17 +40,19 @@ void start_pump() {
  */
 void configure_pump_output() {
   // zero-initialize the config structure.
-  gpio_config_t io_conf = {};
-  // disable interrupt
-  io_conf.intr_type = GPIO_INTR_DISABLE;
-  // set as output mode
-  io_conf.mode = GPIO_MODE_OUTPUT;
-  // bit mask of the pins that you want to set,e.g.GPIO18/19
-  io_conf.pin_bit_mask = PUMP_GPIO_BITMASK;
-  // disable pull-down mode
-  io_conf.pull_down_en = 0;
-  // disable pull-up mode
-  io_conf.pull_up_en = 0;
+  static const gpio_config_t io_conf = {
+      // disable interrupt
+      .intr_type = GPIO_INTR_DISABLE,
+      // set as output mode
+      .mode = GPIO_MODE_OUTPUT,
+      // bit mask of the pins that you want to set,e.g.GPIO18/19
+      .pin_bit_mask = PUMP_GPIO_BITMASK,
+      // disable pull-down mode
+      .pull_down_en = 0,
+      // disable pull-up mode
+      .pull_up_en = 0,
+  };
+
   // configure GPIO with the given settings
   ESP_ERROR_CHECK(gpio_config(&io_conf));
   gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1);
@@ -82,7 +84,7 @@ unsigned short get_cur_min_of_day() {
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 2048
+#define STACK_SIZE 2548
 
 /* Structure that will hold the TCB of the task being created. */
 
@@ -104,11 +106,12 @@ enum State {
 
 void pump_control_task(void *pvParameters) {
   // setup task
-  signed short last_run = get_cur_min_of_day();
-  enum State state = WAITING;
+  static signed short last_run;
+  last_run = get_cur_min_of_day();
+  static enum State state = WAITING;
   stop_pump();
-  time_t pumping_start_time;
-  time_t now;
+  static time_t pumping_start_time;
+  static time_t now;
 
   for (;;) {
     switch (state) {
@@ -123,7 +126,7 @@ void pump_control_task(void *pvParameters) {
         // wait for stop
         const int wait_time_s =
             floor((configuration.pump_cycles.pump_time_s - time_diff_s) * 0.9);
-        ESP_LOGI(TAG, "Wait for stop for %i s", wait_time_s);
+        ESP_LOGD(TAG, "Wait for stop for %i s", wait_time_s);
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time_s * 1e3 + 100));
       }
       break;
@@ -164,7 +167,7 @@ void pump_control_task(void *pvParameters) {
       if (state == WAITING) {
         minutes_to_next_start = floor(minutes_to_next_start * 0.9);
         minutes_to_next_start = fmax(0, minutes_to_next_start);
-        ESP_LOGI(TAG, "Wait for next start for %i min", minutes_to_next_start);
+        ESP_LOGD(TAG, "Wait for next start for %i min", minutes_to_next_start);
         // Wait for minimum 10 second
         ulTaskNotifyTake(
             pdTRUE, pdMS_TO_TICKS((minutes_to_next_start * 60 + 10) * 1e3));

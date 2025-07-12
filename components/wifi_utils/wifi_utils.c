@@ -50,11 +50,11 @@ static void event_handler(void *arg, esp_event_base_t event_base,
         s_retry_num < CONFIG_WIFI_MAXIMUM_RETRY) {
       esp_wifi_connect();
       s_retry_num++;
-      ESP_LOGI(TAG, "retry to connect to the AP");
+      ESP_LOGD(TAG, "retry to connect to the AP");
     } else {
       xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
     }
-    ESP_LOGI(TAG, "connect to the AP fail");
+    ESP_LOGW(TAG, "connect to the AP fail");
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -89,7 +89,7 @@ void wifi_utils_init(void) {
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
   ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));
-  ESP_LOGI(TAG, "wifi_init_sta finished.");
+  ESP_LOGD(TAG, "wifi_init_sta finished.");
   s_wifi_event_group = xEventGroupCreate();
   ESP_ERROR_CHECK_WITHOUT_ABORT(wifi_utils_connect_wifi_blocking());
 }
@@ -119,7 +119,7 @@ esp_err_t wifi_utils_connect_wifi_blocking() {
   }
 
   if (bits & WIFI_FAIL_BIT) {
-    ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s", CONFIG_WIFI_SSID,
+    ESP_LOGW(TAG, "Failed to connect to SSID:%s, password:%s", CONFIG_WIFI_SSID,
              CONFIG_WIFI_PASSWORD);
   } else {
     ESP_LOGE(TAG, "UNEXPECTED EVENT");
@@ -134,7 +134,7 @@ void wifi_utils_check_connection_task(void *pvParameters) {
                                            pdFALSE, pdFALSE, portMAX_DELAY);
     if (bits & WIFI_FAIL_BIT) {
       esp_wifi_stop();
-      ESP_LOGI(TAG, "Wifi connection failed. Wait before retrying.");
+      ESP_LOGD(TAG, "Wifi connection failed. Wait before retrying.");
       vTaskDelay(pdMS_TO_TICKS(CONFIG_WIFI_WAIT_TIME_BETWEEN_RETRY_MS));
       wifi_utils_connect();
     }
@@ -176,11 +176,11 @@ void wifi_utils_init_sntp(void) {
   esp_netif_sntp_init(&config);
   while (esp_netif_sntp_sync_wait(CONFIG_WIFI_SNTP_INIT_WAIT_TIME_MS /
                                   portTICK_PERIOD_MS) == ESP_ERR_TIMEOUT) {
-    ESP_LOGE(TAG, "Could not set time over SNTP. Tried for %d ms",
+    ESP_LOGW(TAG, "Could not set time over SNTP. Tried for %d ms",
              CONFIG_WIFI_SNTP_INIT_WAIT_TIME_MS);
     return;
   }
-  ESP_LOGI(TAG, "System time synced.");
+  ESP_LOGD(TAG, "System time synced.");
 }
 
 esp_err_t wifi_utils_get_connection_strength(int *rssi_level) {

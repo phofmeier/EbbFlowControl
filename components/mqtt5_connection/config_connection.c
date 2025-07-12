@@ -44,23 +44,11 @@ void subscribe_to_config_channel(esp_mqtt_client_handle_t client) {
   esp_mqtt5_client_delete_user_property(
       config_subscribe_property.user_property);
   config_subscribe_property.user_property = NULL;
-  ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+  ESP_LOGD(TAG, "Subscribed to config channel, msg_id=%d", msg_id);
 }
 
 void new_configuration_received_cb(esp_mqtt_event_handle_t event) {
   ESP_LOGI(TAG, "New Configuration received");
-  ESP_LOGI(TAG, "payload_format_indicator is %d",
-           event->property->payload_format_indicator);
-  ESP_LOGI(TAG, "response_topic is %.*s", event->property->response_topic_len,
-           event->property->response_topic);
-  ESP_LOGI(TAG, "correlation_data is %.*s",
-           event->property->correlation_data_len,
-           event->property->correlation_data);
-  ESP_LOGI(TAG, "content_type is %.*s", event->property->content_type_len,
-           event->property->content_type);
-  ESP_LOGI(TAG, "TOPIC=%.*s", event->topic_len, event->topic);
-  ESP_LOGI(TAG, "DATA=%.*s", event->data_len, event->data);
-
   set_config_from_json(event->data, event->data_len);
   send_current_configuration(event->client);
 }
@@ -76,7 +64,7 @@ void send_current_configuration(esp_mqtt_client_handle_t client) {
                                        json_string, 0, 1, 1);
   esp_mqtt5_client_delete_user_property(config_publish_property.user_property);
   config_publish_property.user_property = NULL;
-  ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+  ESP_LOGD(TAG, "sent publish successful, msg_id=%d", msg_id);
   cJSON_Delete(json_config);
   cJSON_free(json_string);
 }

@@ -28,9 +28,9 @@ static EventGroupHandle_t s_mqtt5_event_group_;
 #define MQTT5_CONNECTION_FAILED_BIT BIT0
 
 /** client handle of the connection  */
-esp_mqtt_client_handle_t client_;
+static esp_mqtt_client_handle_t client_;
 
-bool mqtt5_connected = false;
+static bool mqtt5_connected = false;
 
 /**
  * @brief Publish message that the status is connected.
@@ -67,9 +67,9 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
                                        connected_message_length, 1, 1);
   esp_mqtt5_client_delete_user_property(status_publish_property.user_property);
   status_publish_property.user_property = NULL;
-  ESP_LOGI(TAG, "sent Status connected successful, msg_id=%d", msg_id);
-  ESP_LOGI(TAG, "sent Status connected successful, msg=%s", connected_message);
-  ESP_LOGI(TAG, "sent Status connected successful, topic=%s",
+  ESP_LOGD(TAG, "sent Status connected successful, msg_id=%d", msg_id);
+  ESP_LOGD(TAG, "sent Status connected successful, msg=%s", connected_message);
+  ESP_LOGD(TAG, "sent Status connected successful, topic=%s",
            CONFIG_MQTT_STATUS_TOPIC);
 }
 
@@ -109,7 +109,7 @@ static void print_user_property(mqtt5_user_property_handle_t user_property) {
           ESP_OK) {
         for (int i = 0; i < count; i++) {
           esp_mqtt5_user_property_item_t *t = &item[i];
-          ESP_LOGI(TAG, "key is %s, value is %s", t->key, t->value);
+          ESP_LOGD(TAG, "key is %s, value is %s", t->key, t->value);
           free((char *)t->key);
           free((char *)t->value);
         }
@@ -134,7 +134,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
   esp_mqtt_event_handle_t event = event_data;
   esp_mqtt_client_handle_t client = event->client;
 
-  ESP_LOGI(TAG, "free heap size is %" PRIu32 ", minimum %" PRIu32,
+  ESP_LOGD(TAG, "free heap size is %" PRIu32 ", minimum %" PRIu32,
            esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
 
   switch ((esp_mqtt_event_id_t)event_id) {
@@ -161,11 +161,11 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     set_disconnected();
     break;
   case MQTT_EVENT_SUBSCRIBED:
-    ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+    ESP_LOGD(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
     print_user_property(event->property->user_property);
     break;
   case MQTT_EVENT_UNSUBSCRIBED:
-    ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+    ESP_LOGD(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
     print_user_property(event->property->user_property);
     esp_mqtt5_client_set_user_property(&disconnect_property.user_property,
                                        user_property_arr,
@@ -176,12 +176,12 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     esp_mqtt_client_disconnect(client);
     break;
   case MQTT_EVENT_PUBLISHED:
-    ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+    ESP_LOGD(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
     print_user_property(event->property->user_property);
     set_data_published(event->msg_id);
     break;
   case MQTT_EVENT_DATA:
-    ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+    ESP_LOGD(TAG, "MQTT_EVENT_DATA");
     print_user_property(event->property->user_property);
     if (strcmp(event->topic, CONFIG_MQTT_CONFIG_RECEIVE_TOPIC)) {
       new_configuration_received_cb(event);
@@ -202,12 +202,10 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     break;
   case MQTT_EVENT_DELETED:
     set_disconnected();
-    ESP_LOGI(TAG, "MQTT_EVENT_DELETED, msg_id=%d", event->msg_id);
+    ESP_LOGD(TAG, "MQTT_EVENT_DELETED, msg_id=%d", event->msg_id);
     break;
   case MQTT_EVENT_ERROR:
-    ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-    print_user_property(event->property->user_property);
-    ESP_LOGI(TAG, "MQTT5 return code is %d",
+    ESP_LOGE(TAG, "MQTT_EVENT_ERROR return code is %d",
              event->error_handle->connect_return_code);
     if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT) {
       log_error_if_nonzero("reported from esp-tls",
@@ -216,12 +214,12 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
                            event->error_handle->esp_tls_stack_err);
       log_error_if_nonzero("captured as transport's socket errno",
                            event->error_handle->esp_transport_sock_errno);
-      ESP_LOGI(TAG, "Last errno string (%s)",
+      ESP_LOGE(TAG, "Last errno string (%s)",
                strerror(event->error_handle->esp_transport_sock_errno));
     }
     break;
   default:
-    ESP_LOGI(TAG, "Other event id:%d", event->event_id);
+    ESP_LOGW(TAG, "Other event id:%d", event->event_id);
     break;
   }
 }
@@ -247,7 +245,7 @@ int mqtt5_sent_message(const char *topic, const char *data) {
 
   esp_mqtt5_client_delete_user_property(config_publish_property.user_property);
   config_publish_property.user_property = NULL;
-  ESP_LOGI(TAG, "sent data, msg_id=%d", msg_id);
+  ESP_LOGD(TAG, "sent data, msg_id=%d", msg_id);
   return msg_id;
 }
 
@@ -272,7 +270,6 @@ void mqtt5_conn_init() {
   };
 
   // Build last will message as json
-  ESP_LOGI(TAG, "Build last will %3u", configuration.id);
   char last_will_message[88];
   int last_will_message_count = sprintf(
       last_will_message,
