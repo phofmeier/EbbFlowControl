@@ -29,7 +29,7 @@ void initialize_spiffs_storage() {
   const char *base_path = "/store";
   const esp_vfs_spiffs_conf_t mount_config = {.base_path = base_path,
                                               .partition_label = "storage",
-                                              .max_files = 5,
+                                              .max_files = 2,
                                               .format_if_mount_failed = true};
   esp_err_t ret = esp_vfs_spiffs_register(&mount_config);
 
@@ -37,7 +37,7 @@ void initialize_spiffs_storage() {
     ESP_LOGE("SPIFFS", "Failed to mount SPIFFS filesystem: %s",
              esp_err_to_name(ret));
   } else {
-    ESP_LOGI("SPIFFS", "SPIFFS filesystem mounted successfully");
+    ESP_LOGD("SPIFFS", "SPIFFS filesystem mounted successfully");
   }
 }
 

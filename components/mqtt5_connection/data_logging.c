@@ -29,7 +29,7 @@ static const char *TAG = "data_logging";
    NOTE: This is the number of words the stack will hold, not the number of
    bytes. For example, if each stack item is 32-bits, and this is set to 100,
    then 400 bytes (100 * 32-bits) will be allocated. */
-#define STACK_SIZE 2048
+#define STACK_SIZE 3048
 
 /* Structure that will hold the TCB of the task being created. */
 static StaticTask_t xTaskBuffer;
@@ -73,7 +73,7 @@ enum data_store_type {
   PUMP_DATA_STORE,
 };
 
-enum data_store_type current_data_store_ = UNKNOWN;
+static enum data_store_type current_data_store_ = UNKNOWN;
 
 // void list_dir(char *path) {
 //   DIR *dp;
@@ -91,7 +91,7 @@ enum data_store_type current_data_store_ = UNKNOWN;
 // }
 
 void set_connected() {
-  ESP_LOGI(TAG, "Setting connected state");
+  ESP_LOGD(TAG, "Setting connected state");
   xQueueSendToBack(
       event_queue_handle_,
       &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_CONNECTED},
@@ -99,7 +99,7 @@ void set_connected() {
 }
 
 void set_disconnected() {
-  ESP_LOGI(TAG, "Setting disconnected state");
+  ESP_LOGD(TAG, "Setting disconnected state");
   xQueueSendToBack(
       event_queue_handle_,
       &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_DISCONNECTED},
@@ -107,7 +107,7 @@ void set_disconnected() {
 }
 
 void set_data_published(unsigned int id) {
-  ESP_LOGI(TAG, "Setting data published state");
+  ESP_LOGD(TAG, "Setting data published state");
   xQueueSendToBack(event_queue_handle_,
                    (&(struct data_logging_event_t){
                        .type = DATA_LOGGING_EVENT_DATA_PUBLISHED, .id = id}),
@@ -115,21 +115,21 @@ void set_data_published(unsigned int id) {
 }
 
 bool schedule_next_memory_data_send() {
-  struct memory_data_item_t memory_data_item;
+  static struct memory_data_item_t memory_data_item;
   const bool data_available =
       memory_data_store_pop_and_stash(&memory_data_item);
   if (!data_available) {
-    ESP_LOGW(TAG, "No data available to send");
+    ESP_LOGD(TAG, "No data available to send");
     return false;
   }
   cJSON *data = memory_data_item_to_json(&memory_data_item);
   char *data_json_string = cJSON_PrintUnformatted(data);
-  current_data_id_ = mqtt5_sent_message("ef/efc/timed/heap", data_json_string);
   cJSON_Delete(data);
+  current_data_id_ = mqtt5_sent_message("ef/efc/timed/heap", data_json_string);
   cJSON_free(data_json_string);
 
   if (current_data_id_ < 0) {
-    ESP_LOGE(TAG, "Failed to send memory data");
+    ESP_LOGW(TAG, "Failed to send memory data");
     memory_data_store_restore_stack();
     return false;
   }
@@ -137,21 +137,21 @@ bool schedule_next_memory_data_send() {
 }
 
 bool schedule_next_pump_data_send() {
-  struct pump_data_item_t pump_data_item;
+  static struct pump_data_item_t pump_data_item;
   const bool data_available = pump_data_store_pop_and_stash(&pump_data_item);
   if (!data_available) {
-    ESP_LOGW(TAG, "No data available to send");
+    ESP_LOGD(TAG, "No data available to send");
     return false;
   }
   cJSON *data = pump_data_item_to_json(&pump_data_item);
   char *data_json_string = cJSON_PrintUnformatted(data);
+  cJSON_Delete(data);
   current_data_id_ =
       mqtt5_sent_message(CONFIG_MQTT_PUMP_STATUS_TOPIC, data_json_string);
-  cJSON_Delete(data);
   cJSON_free(data_json_string);
 
   if (current_data_id_ < 0) {
-    ESP_LOGE(TAG, "Failed to send pump data");
+    ESP_LOGW(TAG, "Failed to send pump data");
     pump_data_store_restore_stack();
     return false;
   }
@@ -166,17 +166,17 @@ bool schedule_next_pump_data_send() {
  */
 void schedule_next_data_send() {
   if (current_data_id_ >= 0) {
-    ESP_LOGW(TAG, "Data already being sent, skipping new data");
+    ESP_LOGD(TAG, "Data already being sent, skipping new data");
     return;
   }
   if (schedule_next_pump_data_send()) {
     current_data_store_ = PUMP_DATA_STORE;
-    ESP_LOGE(TAG, "Successfully scheduled next pump data send");
+    ESP_LOGD(TAG, "Successfully scheduled next pump data send");
   } else if (schedule_next_memory_data_send()) {
     current_data_store_ = MEMORY_DATA_STORE;
-    ESP_LOGE(TAG, "Successfully scheduled next memory data send");
+    ESP_LOGD(TAG, "Successfully scheduled next memory data send");
   } else {
-    ESP_LOGW(TAG, "Not able to schedule data.");
+    ESP_LOGI(TAG, "Not able to schedule data.");
     current_data_store_ = UNKNOWN;
   }
 }
@@ -185,15 +185,15 @@ void restore_scheduled_data() {
   if (current_data_id_ >= 0) {
     switch (current_data_store_) {
     case UNKNOWN:
-      ESP_LOGI(TAG, "Restoring unknown data store");
+      ESP_LOGD(TAG, "Restoring unknown data store");
       break;
     case PUMP_DATA_STORE:
       pump_data_store_restore_stack();
-      ESP_LOGI(TAG, "Restoring pump data store");
+      ESP_LOGD(TAG, "Restoring pump data store");
       break;
     case MEMORY_DATA_STORE:
       memory_data_store_restore_stack();
-      ESP_LOGI(TAG, "Restoring memory data store");
+      ESP_LOGD(TAG, "Restoring memory data store");
       break;
 
     default:
@@ -223,9 +223,9 @@ void remove_queued_file_from_storage() {
  * @return * void
  */
 void data_logging_task(void *arg) {
-  TickType_t timeout = TIMEOUT_SENT_DATA;
-  struct data_logging_event_t event;
-  BaseType_t queue_receive_result;
+  static TickType_t timeout = TIMEOUT_SENT_DATA;
+  static struct data_logging_event_t event;
+  static BaseType_t queue_receive_result;
   while (1) {
     // Wait for new data to be added
 
@@ -234,24 +234,24 @@ void data_logging_task(void *arg) {
     if (queue_receive_result == pdTRUE) { // Event received
       switch (event.type) {
       case DATA_LOGGING_EVENT_NEW_DATA:
-        ESP_LOGI(TAG, "New data event received");
+        ESP_LOGD(TAG, "New data event received");
         schedule_next_data_send();
         timeout = TIMEOUT_SENT_DATA;
         continue;
       case DATA_LOGGING_EVENT_CONNECTED:
-        ESP_LOGI(TAG, "Connected event received");
+        ESP_LOGD(TAG, "Connected event received");
         schedule_next_data_send();
         timeout = TIMEOUT_SENT_DATA;
         continue;
       case DATA_LOGGING_EVENT_DISCONNECTED:
-        ESP_LOGI(TAG, "Disconnected event received");
+        ESP_LOGD(TAG, "Disconnected event received");
         restore_scheduled_data();
         timeout = TIMEOUT_DISCONNECTED;
         continue;
       case DATA_LOGGING_EVENT_DATA_PUBLISHED:
-        ESP_LOGI(TAG, "Data published event received");
+        ESP_LOGD(TAG, "Data published event received");
         if (event.id != current_data_id_) {
-          ESP_LOGE(TAG, "Invalid data ID received");
+          ESP_LOGD(TAG, "Invalid data ID received");
           timeout = TIMEOUT_SENT_DATA;
           continue; // Skip processing if ID is invalid
         }
@@ -260,12 +260,12 @@ void data_logging_task(void *arg) {
         timeout = TIMEOUT_SENT_DATA;
         continue;
       default:
-        ESP_LOGW(TAG, "Unknown event type: %d", event.type);
+        ESP_LOGE(TAG, "Unknown event type: %d", event.type);
         timeout = TIMEOUT_SENT_DATA;
         continue;
       }
     } else {
-      ESP_LOGW(TAG, "Event queue timeout");
+      ESP_LOGI(TAG, "Event queue timeout");
       // Somehow we run into a timeout during sending data. This should not
       // happen. Just reset and try again.
       if (current_data_id_ >= 0) {
