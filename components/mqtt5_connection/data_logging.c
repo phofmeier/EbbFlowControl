@@ -119,7 +119,7 @@ bool schedule_next_memory_data_send() {
   const bool data_available =
       memory_data_store_pop_and_stash(&memory_data_item);
   if (!data_available) {
-    ESP_LOGD(TAG, "No data available to send");
+    ESP_LOGD(TAG, "No memorydata available to send");
     return false;
   }
   cJSON *data = memory_data_item_to_json(&memory_data_item);
@@ -140,7 +140,7 @@ bool schedule_next_pump_data_send() {
   static struct pump_data_item_t pump_data_item;
   const bool data_available = pump_data_store_pop_and_stash(&pump_data_item);
   if (!data_available) {
-    ESP_LOGD(TAG, "No data available to send");
+    ESP_LOGD(TAG, "No pump data available to send");
     return false;
   }
   cJSON *data = pump_data_item_to_json(&pump_data_item);
