@@ -11,6 +11,7 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
+#include <string.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -79,13 +80,14 @@ void wifi_utils_init(void) {
       IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL, &instance_got_ip));
 
   // Start Wifi connection
-  wifi_config_t wifi_config = {
-      .sta =
-          {
-              .ssid = CONFIG_WIFI_SSID,
-              .password = CONFIG_WIFI_PASSWORD,
-          },
-  };
+  wifi_config_t wifi_config = {0};
+  strncpy((char *)wifi_config.sta.ssid, configuration.network.ssid,
+          sizeof(wifi_config.sta.ssid));
+  wifi_config.sta.ssid[sizeof(wifi_config.sta.ssid) - 1] =
+      '\0'; // Ensure null-termination
+  strncpy((char *)wifi_config.sta.password, configuration.network.password,
+          sizeof(wifi_config.sta.password));
+  wifi_config.sta.password[sizeof(wifi_config.sta.password) - 1] = '\0';
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
   ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));

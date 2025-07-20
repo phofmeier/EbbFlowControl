@@ -10,6 +10,11 @@
 #define CONFIG_PUMP_CYCLES_PUMP_TIME_S_NAME "PcPts"
 #define CONFIG_PUMP_CYCLES_NR_PUMP_CYCLES_NAME "PcNpc"
 #define CONFIG_PUMP_CYCLES_TIMES_MINUTES_PER_DAY_NAME "PcTmpd"
+#define CONFIG_WIFI_SSID_NAME "NetSsid"
+#define CONFIG_WIFI_PASSWORD_NAME "NetPass"
+#define CONFIG_MQTT_BROKER_NAME "NetMqttB"
+#define CONFIG_MQTT_USERNAME_NAME "NetMqttU"
+#define CONFIG_MQTT_PASSWORD_NAME "NetMqttP"
 // Maximum number of task to be notified if the config changes
 #define CONFIG_MAX_NUMBER_TASK_TO_NOTIFY 20
 
@@ -23,6 +28,14 @@ struct configuration_t configuration = {
             .pump_time_s = 120,
             .nr_pump_cycles = 3,
             .times_minutes_per_day = {6 * 60, 12 * 60, 20 * 60},
+        },
+    .network =
+        {
+            .ssid = CONFIG_WIFI_SSID,
+            .password = CONFIG_WIFI_PASSWORD,
+            .mqtt_broker = CONFIG_MQTT_BROKER_URI,
+            .mqtt_username = CONFIG_MQTT_USERNAME,
+            .mqtt_password = CONFIG_MQTT_PASSWORD,
         },
 };
 
@@ -56,6 +69,28 @@ void load_configuration() {
       nvs_get_blob(my_handle, CONFIG_PUMP_CYCLES_TIMES_MINUTES_PER_DAY_NAME,
                    configuration.pump_cycles.times_minutes_per_day, &size));
 
+  // Load network configuration
+  size_t wifi_ssid_length = sizeof(configuration.network.ssid);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_get_str(my_handle, CONFIG_WIFI_SSID_NAME,
+                                            configuration.network.ssid,
+                                            &wifi_ssid_length));
+  size_t wifi_password_length = sizeof(configuration.network.password);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_get_str(my_handle, CONFIG_WIFI_PASSWORD_NAME,
+                  configuration.network.password, &wifi_password_length));
+  size_t mqtt_broker_length = sizeof(configuration.network.mqtt_broker);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_get_str(my_handle, CONFIG_MQTT_BROKER_NAME,
+                                            configuration.network.mqtt_broker,
+                                            &mqtt_broker_length));
+  size_t mqtt_username_length = sizeof(configuration.network.mqtt_username);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_get_str(my_handle, CONFIG_MQTT_USERNAME_NAME,
+                  configuration.network.mqtt_username, &mqtt_username_length));
+  size_t mqtt_password_length = sizeof(configuration.network.mqtt_password);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_get_str(my_handle, CONFIG_MQTT_PASSWORD_NAME,
+                  configuration.network.mqtt_password, &mqtt_password_length));
+
   nvs_close(my_handle);
 }
 
@@ -67,6 +102,8 @@ void save_configuration() {
 
   ESP_ERROR_CHECK_WITHOUT_ABORT(
       nvs_set_u8(my_handle, CONFIG_ID_NAME, configuration.id));
+
+  // Pump cycles
   ESP_ERROR_CHECK_WITHOUT_ABORT(
       nvs_set_u16(my_handle, CONFIG_PUMP_CYCLES_PUMP_TIME_S_NAME,
                   configuration.pump_cycles.pump_time_s));
@@ -78,6 +115,20 @@ void save_configuration() {
   ESP_ERROR_CHECK_WITHOUT_ABORT(
       nvs_set_blob(my_handle, CONFIG_PUMP_CYCLES_TIMES_MINUTES_PER_DAY_NAME,
                    configuration.pump_cycles.times_minutes_per_day, size));
+
+  // Network configuration
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_set_str(my_handle, CONFIG_WIFI_SSID_NAME,
+                                            configuration.network.ssid));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_set_str(
+      my_handle, CONFIG_WIFI_PASSWORD_NAME, configuration.network.password));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_set_str(my_handle, CONFIG_MQTT_BROKER_NAME,
+                                            configuration.network.mqtt_broker));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_set_str(my_handle, CONFIG_MQTT_USERNAME_NAME,
+                  configuration.network.mqtt_username));
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_set_str(my_handle, CONFIG_MQTT_PASSWORD_NAME,
+                  configuration.network.mqtt_password));
 
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_commit(my_handle));
   nvs_close(my_handle);
