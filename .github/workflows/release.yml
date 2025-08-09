@@ -40,13 +40,13 @@ jobs:
         with:
           source: /workspace/build_app/EbbFlowControl.bin
           destination: app.bin
-          container: ebbflowcontrol-devcontainer
+          container: ghcr.io/${{ github.repository_owner }}/ebbflowcontrol-devcontainer
       - name: Copy build files
         uses: tj-actions/docker-cp@v2
         with:
           source: /workspace/build_factory/EbbFlowControl.bin
           destination: factory.bin
-          container: ebbflowcontrol-devcontainer
+          container: ghcr.io/${{ github.repository_owner }}/ebbflowcontrol-devcontainer
 
       - name: Get Changelog Entry
         id: changelog_reader
