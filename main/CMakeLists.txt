@@ -1,1 +1,5 @@
-idf_component_register(SRCS "main.c" INCLUDE_DIRS ".")
+if(CONFIG_BUILD_FACTORY)
+idf_component_register(SRCS  "main_factory.c" INCLUDE_DIRS ".")
+else()
+idf_component_register(SRCS "main.c"  INCLUDE_DIRS ".")
+endif()

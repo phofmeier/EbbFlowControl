@@ -1,0 +1,68 @@
+name: Create Release
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  create_release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version from tag
+        id: tag_name
+        run: |
+          echo "current_version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and run Dev Container task
+        uses: devcontainers/ci@v0.3
+        with:
+          # Change this to point to your image name
+          imageName: ghcr.io/${{ github.repository_owner }}/ebbflowcontrol-devcontainer
+          # Change this to be your CI task/script
+          runCmd: |
+            ./build_all.sh
+
+      ## https://github.com/tj-actions/docker-cp
+      ## Copy the build files from the dev container to the host
+      - name: Copy build files
+        uses: tj-actions/docker-cp@v1
+        with:
+          src: /workspace/build_app/EbbFlowControl.bin
+          dest: ./workspace/app.bin
+          container: ebbflowcontrol-devcontainer
+      - name: Copy build files
+        uses: tj-actions/docker-cp@v1
+        with:
+          src: /workspace/build_factory/EbbFlowControl.bin
+          dest: ./workspace/factory.bin
+          container: ebbflowcontrol-devcontainer
+
+      - name: Get Changelog Entry
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          validation_level: warn
+          version: ${{ steps.tag_name.outputs.current_version }}
+          path: ./CHANGELOG.md
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.changelog_reader.outputs.version }}
+          name: Release ${{ steps.changelog_reader.outputs.version }}
+          body: ${{ steps.changelog_reader.outputs.changes }}
+          prerelease: ${{ steps.changelog_reader.outputs.status == 'prereleased' }}
+          draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: ./workspace/app.bin,./workspace/factory.bin
