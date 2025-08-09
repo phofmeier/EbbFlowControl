@@ -36,16 +36,16 @@ jobs:
       ## https://github.com/tj-actions/docker-cp
       ## Copy the build files from the dev container to the host
       - name: Copy build files
-        uses: tj-actions/docker-cp@v1
+        uses: tj-actions/docker-cp@v2
         with:
-          src: /workspace/build_app/EbbFlowControl.bin
-          dest: ./workspace/app.bin
+          source: /workspace/build_app/EbbFlowControl.bin
+          destination: ./workspace/app.bin
           container: ebbflowcontrol-devcontainer
       - name: Copy build files
-        uses: tj-actions/docker-cp@v1
+        uses: tj-actions/docker-cp@v2
         with:
-          src: /workspace/build_factory/EbbFlowControl.bin
-          dest: ./workspace/factory.bin
+          source: /workspace/build_factory/EbbFlowControl.bin
+          destination: ./workspace/factory.bin
           container: ebbflowcontrol-devcontainer
 
       - name: Get Changelog Entry
