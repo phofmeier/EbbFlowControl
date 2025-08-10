@@ -32,23 +32,10 @@ jobs:
           # Change this to be your CI task/script
           runCmd: |
             ./build_all.sh
-
-      - name: Print Folder Tree
-        uses: jaywcjlove/github-action-folder-tree@main
-        with:
-          path: .
-          depth: 5
       - name: Move build files
         run: |
           mv ./build_app/EbbFlowControl.bin ./app.bin
           mv ./build_factory/EbbFlowControl.bin ./factory.bin
-
-      - name: Print Folder Treeafter
-        uses: jaywcjlove/github-action-folder-tree@main
-        with:
-          path: .
-          depth: 5
-
       - name: Get Changelog Entry
         id: changelog_reader
         uses: mindsers/changelog-reader-action@v2
