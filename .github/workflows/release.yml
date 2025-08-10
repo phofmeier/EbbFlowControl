@@ -40,8 +40,8 @@ jobs:
           depth: 5
       - name: Move build files
         run: |
-          mv ./EbbFlowControl/build_app/EbbFlowControl.bin ./app.bin
-          mv ./EbbFlowControl/build_factory/EbbFlowControl.bin ./factory.bin
+          mv ./build_app/EbbFlowControl.bin ./app.bin
+          mv ./build_factory/EbbFlowControl.bin ./factory.bin
 
       - name: Print Folder Treeafter
         uses: jaywcjlove/github-action-folder-tree@main
