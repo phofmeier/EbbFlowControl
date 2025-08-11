@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (GitHub)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install dependencies
         run: sudo apt install -y clang-tidy clang-format cppcheck
       - uses: pre-commit/action@v3.0.1
