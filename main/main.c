@@ -8,6 +8,7 @@
 #include "configuration.h"
 #include "data_logging.h"
 #include "mqtt5_connection.h"
+#include "ota_updater.h"
 #include "pump_control.h"
 #include "wifi_utils.h"
 
@@ -56,6 +57,11 @@ void app_main(void) {
   // Initialize and connect to Wifi
   wifi_utils_init();
   wifi_utils_init_sntp();
+
+  // run ota updater task
+  initialize_ota_updater();
+  xTaskCreate(&ota_updater_task, "ota_updater_task", 1024 * 8, NULL, 5, NULL);
+
   wifi_utils_create_connection_checker_task();
   // MQTT Setup
   mqtt5_conn_init();
@@ -64,4 +70,6 @@ void app_main(void) {
   create_data_logging_task();
   // Create control tasks
   ESP_ERROR_CHECK(add_notify_for_new_config(create_pump_control_task()));
+
+  mark_running_app_version_valid();
 }
