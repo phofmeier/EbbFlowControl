@@ -1,0 +1,12 @@
+menu "OTA Updater Configuration"
+    config OTA_FIRMWARE_UPGRADE_URL
+        string "URL for firmware upgrade."
+        default "https://example.com/firmware.bin"
+        help
+            Set the URL from which to download the firmware upgrade.
+    config OTA_USE_CERT_BUNDLE
+        bool "Use certificate bundle for HTTPS."
+        default n
+        help
+            Enable this option to use the built-in certificate bundle for HTTPS connections. If disabled, a custom server certificate must be provided.
+endmenu

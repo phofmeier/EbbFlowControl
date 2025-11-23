@@ -7,4 +7,9 @@ cmake_minimum_required(VERSION 3.5)
 set(SDKCONFIG "${CMAKE_BINARY_DIR}/sdkconfig")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+if(CONFIG_BUILD_FACTORY)
+project(EbbFlowControl-factory)
+else()
 project(EbbFlowControl)
+endif()
