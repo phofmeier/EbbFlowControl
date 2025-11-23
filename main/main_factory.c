@@ -1,15 +1,12 @@
+#include "esp_event.h"
 #include "esp_log.h"
-// #include "esp_spiffs.h"
-// #include "esp_vfs.h"
 #include <esp_err.h>
 #include <nvs_flash.h>
 #include <stdio.h>
 
 #include "configuration.h"
-// #include "data_logging.h"
-// #include "mqtt5_connection.h"
-// #include "pump_control.h"
-// #include "wifi_utils.h"
+#include "ota_updater.h"
+#include "wifi_utils.h"
 
 void initialize_nvs() {
   esp_err_t ret = nvs_flash_init();
@@ -28,17 +25,13 @@ void app_main(void) {
   load_configuration();
 
   // Create Event Loop
-  //   ESP_ERROR_CHECK(esp_event_loop_create_default());
+  ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-  //   // Initialize and connect to Wifi
-  //   wifi_utils_init();
-  //   wifi_utils_init_sntp();
-  //   wifi_utils_create_connection_checker_task();
-  //   // MQTT Setup
-  //   mqtt5_conn_init();
-  //   mqtt5_create_connection_checker_task();
-  //   // Data Logging Setup
-  //   create_data_logging_task();
-  //   // Create control tasks
-  //   ESP_ERROR_CHECK(add_notify_for_new_config(create_pump_control_task()));
+  // Initialize and connect to Wifi
+  wifi_utils_init();
+  wifi_utils_init_sntp();
+
+  // run ota updater task
+  initialize_ota_updater();
+  xTaskCreate(&ota_updater_task, "ota_updater_task", 1024 * 8, NULL, 5, NULL);
 }
