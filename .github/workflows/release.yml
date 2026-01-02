@@ -34,8 +34,8 @@ jobs:
             ./build_all.sh
       - name: Move build files
         run: |
-          mv ./build_app/EbbFlowControl.bin ./app.bin
-          mv ./build_factory/EbbFlowControl.bin ./factory.bin
+          mv ./build_app/EbbFlowControl.bin ./EbbFlowControl.bin
+          mv ./build_factory/EbbFlowControl-factory.bin ./EbbFlowControl-factory.bin
       - name: Get Changelog Entry
         id: changelog_reader
         uses: mindsers/changelog-reader-action@v2
@@ -53,4 +53,4 @@ jobs:
           prerelease: ${{ steps.changelog_reader.outputs.status == 'prereleased' }}
           draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: ./app.bin,./factory.bin
+          artifacts: ./EbbFlowControl.bin,./EbbFlowControl-factory.bin
