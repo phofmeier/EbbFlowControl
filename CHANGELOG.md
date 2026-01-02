@@ -11,7 +11,7 @@ Use the following labels:
 - `Fixed` for any bug fixes.
 - `Security` in case of vulnerabilities.
 
-## [UNRELEASED]
+## [0.1.0] - 2026-01-02
 
 - [Minor] Add over the air update feature.
 
