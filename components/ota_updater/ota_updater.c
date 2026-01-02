@@ -107,6 +107,7 @@ void ota_updater_task(void *pvParameter) {
       .cert_pem = (char *)server_cert_pem_start,
 #endif /* CONFIG_OTA_USE_CERT_BUNDLE */
       .keep_alive_enable = true,
+      .buffer_size_tx = 1024,
   };
 
   esp_https_ota_config_t ota_config = {
