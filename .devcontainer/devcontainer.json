@@ -25,5 +25,5 @@
     "--device=/dev/ttyUSB0",
     "-p=8070:8070"
   ],
-  "postCreateCommand": "pip install --upgrade pip && pip install pre-commit &&  pre-commit install --install-hooks"
+  "postCreateCommand": "pip install --upgrade pip && pip install setuptools -U && pip install pre-commit &&  pre-commit install --install-hooks"
 }

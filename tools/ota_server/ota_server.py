@@ -21,7 +21,7 @@ def start_https_server(
 
     current_dir = os.path.abspath(".")
     server_address = (server_ip, server_port)
-    
+
     os.chdir(ota_image_dir)
     httpd = http.server.HTTPServer(server_address, http.server.SimpleHTTPRequestHandler)
 
