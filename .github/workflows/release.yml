@@ -53,4 +53,6 @@ jobs:
           prerelease: ${{ steps.changelog_reader.outputs.status == 'prereleased' }}
           draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: ./EbbFlowControl.bin,./EbbFlowControl-factory.bin
+          files: |
+            EbbFlowControl.bin
+            EbbFlowControl-factory.bin
