@@ -75,7 +75,7 @@ static esp_err_t validate_image_header(const esp_app_desc_t *new_app_info) {
     ESP_LOGI(TAG, "Factory app is running, allowing update to proceed.");
     return ESP_OK;
   }
-
+  ESP_LOGI(TAG, "New Application Version: %s", new_app_info->version);
   if (memcmp(new_app_info->version, running_app_info.version,
              sizeof(new_app_info->version)) == 0) {
     ESP_LOGW(TAG, "Current running version is the same as a new. We will not "
