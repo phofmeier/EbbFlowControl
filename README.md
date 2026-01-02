@@ -12,7 +12,7 @@ This repository hold the software for a controller for an automated ebb flow hyd
 - Build application: `idf.py @profiles/app build`
 - Flash application: `idf.py -B build_app flash`
 - Build factory: `idf.py @profiles/factory build`
-- Flash factory: `idf.py -B build_app flash`
+- Flash factory: `idf.py -B build_factory flash`
 
 ## Build and Flash
 

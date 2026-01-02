@@ -22,7 +22,8 @@
   },
   "runArgs": [
     "--privileged",
-    "--device=/dev/ttyUSB0"
+    "--device=/dev/ttyUSB0",
+    "-p=8070:8070"
   ],
   "postCreateCommand": "pip install --upgrade pip && pip install pre-commit &&  pre-commit install --install-hooks"
 }

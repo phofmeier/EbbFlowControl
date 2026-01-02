@@ -94,6 +94,11 @@ void initialize_ota_updater() {
 
 void ota_updater_task(void *pvParameter) {
   ESP_LOGI(TAG, "Starting OTA example task");
+#ifndef CONFIG_OTA_USE_CERT_BUNDLE
+  ESP_LOGI(TAG, "Server Certificate: \n%s", server_cert_pem_start);
+#endif
+  ESP_LOGI(TAG, "Connecting to %s", CONFIG_OTA_FIRMWARE_UPGRADE_URL);
+
   esp_http_client_config_t config = {
       .url = CONFIG_OTA_FIRMWARE_UPGRADE_URL,
 #ifdef CONFIG_OTA_USE_CERT_BUNDLE
