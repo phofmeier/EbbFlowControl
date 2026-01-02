@@ -1,1 +1,1 @@
--B build_factory -DSDKCONFIG=build_factory/sdkconfig -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.factory"
+-B build_factory -DSDKCONFIG=build_factory/sdkconfig -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.factory" -DBUILD_FACTORY=ON

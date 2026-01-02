@@ -13,6 +13,8 @@ Use the following labels:
 
 ## [UNRELEASED]
 
+- [Minor] Add over the air update feature.
+
 ## [0.0.1] - 2025-07-11
 
 ### Added
