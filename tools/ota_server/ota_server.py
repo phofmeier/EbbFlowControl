@@ -42,7 +42,7 @@ if __name__ == "__main__":
         type=str,
         required=False,
         default="../../build_app/",
-        help="Directory containing OTA images.",
+        help="Directory containing OTA images. Pointing to the build folder.",
     )
     arg_parser.add_argument(
         "--server_ip",
@@ -76,6 +76,14 @@ if __name__ == "__main__":
     )
     args = arg_parser.parse_args()
     print(f"Start Server with {args}")
+    cwd = os.path.realpath(os.getcwd())
+    file_path = os.path.realpath(__file__)
+    if cwd is not file_path:
+        print(f"Warning: The script was not started from the correct directory. "
+            f"This might lead to not working properly. "
+            f"Start from {file_path} to not get this warning."
+        )
+
     start_https_server(
         ota_image_dir=args.ota_image_dir,
         server_ip=args.server_ip,

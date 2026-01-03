@@ -1,9 +1,9 @@
 if(CONFIG_OTA_USE_CERT_BUNDLE)
-idf_component_register(SRCS "ota_updater.c"
+idf_component_register(SRCS "ota_updater.c" "ota_scheduler.c"
                     INCLUDE_DIRS "include"
                     PRIV_REQUIRES mbedtls esp_http_client app_update esp_https_ota)
 else()
-idf_component_register(SRCS "ota_updater.c"
+idf_component_register(SRCS "ota_updater.c" "ota_scheduler.c"
                     INCLUDE_DIRS "include"
                     PRIV_REQUIRES mbedtls esp_http_client app_update esp_https_ota
                      # Embed the server root certificate into the final binary
