@@ -4,5 +4,17 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.5)
 
+option(BUILD_FACTORY "Build the factory app" OFF)
+message(STATUS "Build Factory Flag: ${BUILD_FACTORY}")
+
+set(SDKCONFIG "${CMAKE_BINARY_DIR}/sdkconfig")
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+if(BUILD_FACTORY)
+project(EbbFlowControl-factory)
+message(STATUS "Build Factory")
+else()
 project(EbbFlowControl)
+message(STATUS "Build Normal Application")
+endif()

@@ -5,6 +5,15 @@
 
 This repository hold the software for a controller for an automated ebb flow hydroponic grow system. The controller runs on an ESP32 and can be configured via MQTT. The MQTT connection is additionally used to send status information and data for monitoring to an overall system.
 
+## Over the Air (OTA) updates
+
+## Factory vs Application
+
+- Build application: `idf.py @profiles/app build`
+- Flash application: `idf.py -B build_app flash`
+- Build factory: `idf.py @profiles/factory build`
+- Flash factory: `idf.py -B build_factory flash`
+
 ## Build and Flash
 
 The easiest way to build the software is to run the Docker devcontainer.

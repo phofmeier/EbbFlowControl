@@ -277,12 +277,13 @@ void mqtt5_conn_init() {
       configuration.id, VERSION_STRING);
 
   esp_mqtt_client_config_t mqtt5_cfg = {
-      .broker.address.uri = CONFIG_MQTT_BROKER_URI,
+      .broker.address.uri = configuration.network.mqtt_broker,
       .session.protocol_ver = MQTT_PROTOCOL_V_5,
       .network.disable_auto_reconnect = false,
       .network.reconnect_timeout_ms = CONFIG_MQTT_TIMEOUT_RECONNECT_MS,
-      .credentials.username = CONFIG_MQTT_USERNAME,
-      .credentials.authentication.password = CONFIG_MQTT_PASSWORD,
+      .credentials.username = configuration.network.mqtt_username,
+      .credentials.authentication.password =
+          configuration.network.mqtt_password,
       .session.last_will.topic = CONFIG_MQTT_STATUS_TOPIC,
       .session.last_will.msg = last_will_message,
       .session.last_will.msg_len = last_will_message_count,

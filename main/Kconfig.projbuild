@@ -23,5 +23,12 @@ menu "Application Configuration"
         help
             Set the URI to the MQTT broker.
 
+    config BUILD_FACTORY
+        bool "Build factory firmware"
+        default n
+        help
+            If enabled, the factory firmware will be built instead of the normal application.
+            This is useful for initial setup or testing purposes.
+
 
 endmenu

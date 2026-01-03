@@ -52,7 +52,12 @@ Mkfile.old
 dkms.conf
 
 build/
+build_factory/
+build_app/
 sdkconfig
 sdkconfig.old
 node_modules
 warnings.txt
+tools/ota_server/ca_cert.pem
+tools/ota_server/ca_key.pem
+log.*

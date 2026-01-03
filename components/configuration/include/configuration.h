@@ -20,6 +20,20 @@ struct pump_cycle_configuration_t {
                                                // start the pump
 };
 
+#define WIFI_SSID_MAX_LENGTH 32
+#define WIFI_PASSWORD_MAX_LENGTH 64
+#define MQTT_BROKER_MAX_LENGTH 128
+#define MQTT_USERNAME_MAX_LENGTH 64
+#define MQTT_PASSWORD_MAX_LENGTH 64
+
+struct network_configuration_t {
+  char ssid[WIFI_SSID_MAX_LENGTH];              // SSID of WiFi network
+  char password[WIFI_PASSWORD_MAX_LENGTH];      // Password of WiFi network
+  char mqtt_broker[MQTT_BROKER_MAX_LENGTH];     // MQTT broker address
+  char mqtt_username[MQTT_USERNAME_MAX_LENGTH]; // MQTT username
+  char mqtt_password[MQTT_PASSWORD_MAX_LENGTH]; // MQTT password
+};
+
 /**
  * @brief Define the global configuration of the application.
  *
@@ -27,6 +41,7 @@ struct pump_cycle_configuration_t {
 struct configuration_t {
   unsigned char id;
   struct pump_cycle_configuration_t pump_cycles;
+  struct network_configuration_t network;
 };
 
 /**

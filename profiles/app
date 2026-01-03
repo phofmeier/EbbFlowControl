@@ -1,0 +1,1 @@
+-B build_app -DSDKCONFIG=build_app/sdkconfig -DSDKCONFIG_DEFAULTS="sdkconfig.defaults"
