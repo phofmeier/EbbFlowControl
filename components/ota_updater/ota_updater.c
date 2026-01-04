@@ -19,35 +19,111 @@ struct application_version_t {
   int patch;
   int build;
   bool dirty;
-  // char description[16];
+  char description[9];
 };
 
+void log_application_version(const char *prefix,
+                             const struct application_version_t *app_version) {
+  if (app_version == NULL) {
+    return;
+  }
+  ESP_LOGI(TAG, "%s Version: %d.%d.%d", prefix, app_version->major,
+           app_version->minor, app_version->patch);
+  if (app_version->build > 0) {
+    ESP_LOGI(TAG, "Build: %d", app_version->build);
+  }
+  if (app_version->description[0] != '\0') {
+    ESP_LOGI(TAG, "Description: %s", app_version->description);
+  }
+  if (app_version->dirty) {
+    ESP_LOGI(TAG, "Source tree is dirty");
+  }
+}
+
+/***
+ * @brief Extract application version information from version string
+ *
+ * Assumes version string is in the format:
+ * v<major>.<minor>.<patch>[-<build>-<description>][-dirty]
+ * Examples: v1.2.3
+ * v1.2.3-4-alpha
+ * v1.2.3-dirty
+ * v1.2.3-4-alpha-dirty
+ *
+ * @param app_version_str Version string to parse
+ * @param app_version Pointer to application_version_t struct to fill
+ *
+ */
 void extract_application_version(const char *app_version_str,
                                  struct application_version_t *app_version) {
   if (app_version_str == NULL || app_version == NULL) {
     return;
   }
 
-  int major = 0, minor = 0, patch = 0, build = 0;
-  bool dirty = false;
-
+  int major = 0;
+  int minor = 0;
+  int patch = 0;
   sscanf(app_version_str, "v%d.%d.%d", &major, &minor, &patch);
 
+  bool dirty = false;
   if (strstr(app_version_str, "-dirty") != NULL) {
     dirty = true;
   }
 
-  // char *dash = strchr(app_version_str, '-');
-  // if (dash != NULL) {
-  // }
+  int build = 0;
+  char desc[9] = "";
+  const char *first_dash = strchr(app_version_str, '-');
+  if (first_dash != NULL && first_dash[1] != '\0' && first_dash[1] != 'd') {
+    sscanf(first_dash + 1, "%d-%8s", &build, desc);
+  }
 
   app_version->major = major;
   app_version->minor = minor;
   app_version->patch = patch;
-  app_version->build = build;
   app_version->dirty = dirty;
-  // snprintf(app_version->description, sizeof(app_version->description), "%s",
-  //          app_desc->version);
+  app_version->build = build;
+  snprintf(app_version->description, sizeof(app_version->description), "%s",
+           desc);
+}
+
+/***
+ * @brief Compare two application versions.
+ *
+ * Dirty versions are considered newer (bigger) than clean versions.
+ * If both versions are dirty, the first version is considered newer.
+ *
+ * @param v1 First application version
+ * @param v2 Second application version
+ * @return int 1 if v1 > v2, -1 if v1 < v2, 0 if equal or invalid
+ */
+int compare_application_versions(const struct application_version_t *v1,
+                                 const struct application_version_t *v2) {
+  if (v1 == NULL || v2 == NULL) {
+    return 0;
+  }
+
+  if (v1->major != v2->major) {
+    return (v1->major > v2->major) ? 1 : -1;
+  }
+  if (v1->minor != v2->minor) {
+    return (v1->minor > v2->minor) ? 1 : -1;
+  }
+  if (v1->patch != v2->patch) {
+    return (v1->patch > v2->patch) ? 1 : -1;
+  }
+  if (v1->build != v2->build) {
+    return (v1->build > v2->build) ? 1 : -1;
+  }
+  // Assume dirty version is newer than clean version
+  // if both are dirty the first version is considered newer
+  if (v1->dirty != v2->dirty) {
+    return (v1->dirty) ? 1 : -1;
+  }
+  if (v1->dirty) {
+    return 1;
+  }
+
+  return 0;
 }
 
 /* Event handler for catching system events */
@@ -102,9 +178,16 @@ static esp_err_t validate_image_header(const esp_app_desc_t *new_app_info) {
 
   const esp_partition_t *running = esp_ota_get_running_partition();
   esp_app_desc_t running_app_info;
+  struct application_version_t running_app_version;
+
   if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
-    ESP_LOGI(TAG, "Running firmware version: %s", running_app_info.version);
+    extract_application_version(running_app_info.version, &running_app_version);
+    log_application_version("Running", &running_app_version);
   }
+
+  struct application_version_t new_app_version;
+  extract_application_version(new_app_info->version, &new_app_version);
+  log_application_version("New", &new_app_version);
 
   // Allow update if factory app is running
   if (strncmp(running_app_info.project_name, "EbbFlowControl-factory",
@@ -112,11 +195,14 @@ static esp_err_t validate_image_header(const esp_app_desc_t *new_app_info) {
     ESP_LOGI(TAG, "Factory app is running, allowing update to proceed.");
     return ESP_OK;
   }
-  ESP_LOGI(TAG, "New Application Version: %s", new_app_info->version);
-
-  if (memcmp(new_app_info->version, running_app_info.version,
-             sizeof(new_app_info->version)) == 0) {
-    ESP_LOGW(TAG, "Current running version is the same as a new. We will not "
+  const int cmp_result =
+      compare_application_versions(&new_app_version, &running_app_version);
+  if (cmp_result < 0) {
+    ESP_LOGW(TAG, "New version is older than the running version. We will not "
+                  "continue the update.");
+    return ESP_FAIL;
+  } else if (cmp_result == 0) {
+    ESP_LOGW(TAG, "New version is the same as the running version. We will not "
                   "continue the update.");
     return ESP_FAIL;
   }
