@@ -13,6 +13,43 @@ static const char *TAG = "ota_updater";
 
 extern const uint8_t server_cert_pem_start[] asm("_binary_ca_cert_pem_start");
 
+struct application_version_t {
+  int major;
+  int minor;
+  int patch;
+  int build;
+  bool dirty;
+  // char description[16];
+};
+
+void extract_application_version(const char *app_version_str,
+                                 struct application_version_t *app_version) {
+  if (app_version_str == NULL || app_version == NULL) {
+    return;
+  }
+
+  int major = 0, minor = 0, patch = 0, build = 0;
+  bool dirty = false;
+
+  sscanf(app_version_str, "v%d.%d.%d", &major, &minor, &patch);
+
+  if (strstr(app_version_str, "-dirty") != NULL) {
+    dirty = true;
+  }
+
+  // char *dash = strchr(app_version_str, '-');
+  // if (dash != NULL) {
+  // }
+
+  app_version->major = major;
+  app_version->minor = minor;
+  app_version->patch = patch;
+  app_version->build = build;
+  app_version->dirty = dirty;
+  // snprintf(app_version->description, sizeof(app_version->description), "%s",
+  //          app_desc->version);
+}
+
 /* Event handler for catching system events */
 static void ota_updater_event_handler(void *arg, esp_event_base_t event_base,
                                       int32_t event_id, void *event_data) {
@@ -76,6 +113,7 @@ static esp_err_t validate_image_header(const esp_app_desc_t *new_app_info) {
     return ESP_OK;
   }
   ESP_LOGI(TAG, "New Application Version: %s", new_app_info->version);
+
   if (memcmp(new_app_info->version, running_app_info.version,
              sizeof(new_app_info->version)) == 0) {
     ESP_LOGW(TAG, "Current running version is the same as a new. We will not "
@@ -137,8 +175,8 @@ void ota_updater_task(void *pvParameter) {
     if (err != ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
       break;
     }
-    // esp_https_ota_perform returns after every read operation which gives user
-    // the ability to monitor the status of OTA upgrade by calling
+    // esp_https_ota_perform returns after every read operation which gives
+    // user the ability to monitor the status of OTA upgrade by calling
     // esp_https_ota_get_image_len_read, which gives length of image data read
     // so far.
     const size_t len = esp_https_ota_get_image_len_read(https_ota_handle);
