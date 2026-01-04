@@ -28,7 +28,9 @@ void ota_scheduler_task(void *pvParameter) {
              uxTaskGetStackHighWaterMark(NULL));
     ESP_LOGI(TAG, "Wait for %i hours before next update.",
              hours_until_midnight);
-    vTaskDelay(pdMS_TO_TICKS(hours_until_midnight * 60 * 60 * 1e3));
+    const uint32_t delay_ticks =
+        hours_until_midnight * 60 * 60 * configTICK_RATE_HZ;
+    vTaskDelay(delay_ticks);
 
     // Try to update now.
     xTaskCreate(&ota_updater_task, "ota_updater_task", 1024 * 8, NULL, 5, NULL);

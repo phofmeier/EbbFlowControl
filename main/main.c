@@ -1,4 +1,5 @@
 #include "esp_event.h"
+#include "freertos/FreeRTOS.h"
 #include <esp_err.h>
 
 #include "init_utils.c"
@@ -40,6 +41,7 @@ void app_main(void) {
   create_ota_scheduler_task();
 
   // After running for 25 hours without any errors we can mark it valid.
-  vTaskDelay(pdMS_TO_TICKS(25 * 60 * 60 * 1e3));
+  static const uint32_t delay_ticks = 25 * 60 * 60 * configTICK_RATE_HZ;
+  vTaskDelay(delay_ticks);
   mark_running_app_version_valid();
 }
