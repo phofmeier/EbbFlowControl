@@ -32,10 +32,14 @@ jobs:
           # Change this to be your CI task/script
           runCmd: |
             ./build_all.sh
-      - name: Move build files
+      - name: Zip factory build files
         run: |
-          mv ./build_app/EbbFlowControl.bin ./EbbFlowControl.bin
-          mv ./build_factory/EbbFlowControl-factory.bin ./EbbFlowControl-factory.bin
+          # Extract filenames from flash_project_args (keeping paths)
+          FILES_TO_ZIP=$(awk 'NR > 1 {print "./build_factory/"$2}' ./build_factory/flash_project_args | tr '\n' ' ')
+          # Add additional files
+          FILES_TO_ZIP="$FILES_TO_ZIP EbbFlowControl-Setup_wifi_qr.png ./build_factory/flash_project_args"
+          echo "Files to zip: $FILES_TO_ZIP"
+          zip FactoryBuildFiles.zip $FILES_TO_ZIP
       - name: Get Changelog Entry
         id: changelog_reader
         uses: mindsers/changelog-reader-action@v2
@@ -54,5 +58,5 @@ jobs:
           draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            EbbFlowControl.bin
-            EbbFlowControl-factory.bin
+            ./build_app/EbbFlowControl.bin
+            FactoryBuildFiles.zip

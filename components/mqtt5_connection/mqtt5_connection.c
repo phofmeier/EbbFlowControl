@@ -8,7 +8,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
-#include "wifi_utils.h"
+#include "wifi_utils_sta.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>

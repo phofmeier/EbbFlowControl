@@ -5,6 +5,13 @@
 
 This repository hold the software for a controller for an automated ebb flow hydroponic grow system. The controller runs on an ESP32 and can be configured via MQTT. The MQTT connection is additionally used to send status information and data for monitoring to an overall system.
 
+## First configuration
+
+Scan the QR Code.
+
+![Wifi QR Code](EbbFlowControl-Setup_wifi_qr.png?raw=True)
+
+
 ## Over the Air (OTA) updates
 
 ## Factory vs Application

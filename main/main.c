@@ -1,4 +1,5 @@
 #include "esp_event.h"
+#include "esp_netif.h"
 #include "freertos/FreeRTOS.h"
 #include <esp_err.h>
 
@@ -10,7 +11,8 @@
 #include "ota_scheduler.h"
 #include "ota_updater.h"
 #include "pump_control.h"
-#include "wifi_utils.h"
+#include "wifi_utils_sntp.h"
+#include "wifi_utils_sta.h"
 
 void app_main(void) {
   // Configure GPIOS
@@ -25,6 +27,7 @@ void app_main(void) {
   ESP_ERROR_CHECK(esp_event_loop_create_default());
 
   // Initialize and connect to Wifi
+  ESP_ERROR_CHECK(esp_netif_init());
   wifi_utils_init();
   wifi_utils_init_sntp();
   wifi_utils_create_connection_checker_task();
@@ -39,6 +42,8 @@ void app_main(void) {
 
   // Might wait up to 24 hours for the first update.
   create_ota_scheduler_task();
+
+  // Mark config as valid after successful wifi and mqtt connection
 
   // After running for 25 hours without any errors we can mark it valid.
   static const uint32_t delay_ticks = 25 * 60 * 60 * configTICK_RATE_HZ;

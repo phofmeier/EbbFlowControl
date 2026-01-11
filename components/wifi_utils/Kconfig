@@ -23,5 +23,23 @@ menu "Wifi Application Config"
         help
             Set the time to wait for the initial SNTP server response. (Default 1 min)
 
+    config WIFI_SOFT_AP_SSID
+        string "SSID for the WiFi SoftAP mode."
+        default "EbbFlowControl-Setup"
+        help
+            SSID for the WiFi SoftAP mode used for initial device configuration.
+
+    config WIFI_SOFT_AP_PASSWORD
+        string "Password for the WiFi SoftAP mode."
+        default "ebbflowcontrol"
+        help
+            Password for the WiFi SoftAP mode used for initial device configuration.
+
+    config WIFI_SOFT_AP_MAX_CONNECTIONS
+        int "Maximum number of connections for the WiFi SoftAP mode."
+        default 2
+        help
+            Maximum number of connections for the WiFi SoftAP mode used for initial device configuration.
+
 
 endmenu

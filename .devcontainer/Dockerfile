@@ -19,6 +19,8 @@ RUN apt update \
   cppcheck \
   # iwyu \
   # cpplint \
+  qrencode \
+  wget \
   && rm -rf /var/lib/apt/lists/*
 
 # QEMU

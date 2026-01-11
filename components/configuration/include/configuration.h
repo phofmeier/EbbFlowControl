@@ -32,6 +32,7 @@ struct network_configuration_t {
   char mqtt_broker[MQTT_BROKER_MAX_LENGTH];     // MQTT broker address
   char mqtt_username[MQTT_USERNAME_MAX_LENGTH]; // MQTT username
   char mqtt_password[MQTT_PASSWORD_MAX_LENGTH]; // MQTT password
+  bool valid;                                   // is the config valid
 };
 
 /**
