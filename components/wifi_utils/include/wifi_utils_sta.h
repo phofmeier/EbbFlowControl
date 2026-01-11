@@ -1,5 +1,5 @@
-#ifndef COMPONENTS_WIFI_UTILS_INCLUDE_WIFI_UTILS
-#define COMPONENTS_WIFI_UTILS_INCLUDE_WIFI_UTILS
+#ifndef COMPONENTS_WIFI_UTILS_INCLUDE_WIFI_UTILS_STA
+#define COMPONENTS_WIFI_UTILS_INCLUDE_WIFI_UTILS_STA
 
 #include "esp_err.h"
 #include "freertos/FreeRTOS.h"
@@ -10,12 +10,6 @@
  *
  */
 void wifi_utils_init(void);
-
-/**
- * @brief Initialize the connection to the SNTP Server to synchronize the time.
- *
- */
-void wifi_utils_init_sntp(void);
 
 /**
  * @brief Get the wifi connection strength.
@@ -55,4 +49,4 @@ void wifi_utils_check_connection_task(void *pvParameters);
  */
 TaskHandle_t wifi_utils_create_connection_checker_task();
 
-#endif /* COMPONENTS_WIFI_UTILS_INCLUDE_WIFI_UTILS */
+#endif /* COMPONENTS_WIFI_UTILS_INCLUDE_WIFI_UTILS_STA */

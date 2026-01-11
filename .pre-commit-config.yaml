@@ -38,6 +38,7 @@ repos:
             "--suppress=missingIncludeSystem",
             "--suppress=unusedFunction",
             "--suppress=missingInclude",
+            "--inline-suppr"
           ]
       # - id: cpplint
       # - id: include-what-you-use

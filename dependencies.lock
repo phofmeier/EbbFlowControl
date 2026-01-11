@@ -38,6 +38,6 @@ direct_dependencies:
 - idf
 - mqtt5_connection
 - wifi_utils
-manifest_hash: 44ed24fb213c76fac8024f62bd8a302819da1bf219e91e2bfa7f71b9c9528fce
+manifest_hash: bebf590e1eae53fca6caaeb6b9e9b835d0401dad874932fc6c681f296c171d8b
 target: esp32
 version: 2.0.0
