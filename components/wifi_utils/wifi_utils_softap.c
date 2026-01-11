@@ -7,6 +7,11 @@
 #include "esp_wifi.h"
 #include "lwip/inet.h"
 
+#ifndef MAC2STR
+#define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
+#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+#endif
+
 static const char *TAG = "wifi_softap";
 static int number_of_connections_ = 0;
 
