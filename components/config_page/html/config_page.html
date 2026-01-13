@@ -11,11 +11,13 @@
         <hr>
         <label>WiFi SSID: <input type="text" name="ssid" value="{{ssid}}" placeholder="MyWiFiNetwork" maxlength="32" required></label><br>
         <label>WiFi Password: <input type="password" name="wifi_password" value="{{wifi_password}}" placeholder="WiFiPassword123" maxlength="64"></label><br>
+        <div id="wifi-status">{{wifi_status}}</div>
         <hr>
         <label>MQTT URL: <input type="url" name="mqtt" value="{{mqtt}}" placeholder="mqtt://mosquitto.example.com:1883"
                 pattern="mqtt://.*" maxlength="128" required></label><br>
         <label>MQTT Username: <input type="text" name="mqtt_username" value="{{mqtt_username}}" placeholder="mqtt_user" maxlength="64"></label><br>
         <label>MQTT Password: <input type="password" name="mqtt_password" value="{{mqtt_password}}" placeholder="mqtt_pass" maxlength="64"></label><br>
+        <div id="mqtt-status">{{mqtt_status}}</div>
         <button type="submit">Submit</button>
     </form>
 </body>

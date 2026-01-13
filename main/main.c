@@ -29,6 +29,7 @@ void app_main(void) {
   // Initialize and connect to Wifi
   ESP_ERROR_CHECK(esp_netif_init());
   wifi_utils_init();
+  ESP_ERROR_CHECK_WITHOUT_ABORT(wifi_utils_connect_wifi_blocking());
   wifi_utils_init_sntp();
   wifi_utils_create_connection_checker_task();
 
@@ -46,7 +47,11 @@ void app_main(void) {
   // Mark config as valid after successful wifi and mqtt connection
 
   // After running for 25 hours without any errors we can mark it valid.
-  static const uint32_t delay_ticks = 25 * 60 * 60 * configTICK_RATE_HZ;
-  vTaskDelay(delay_ticks);
+  static const uint32_t initial_delay_ticks = 25 * 60 * 60 * configTICK_RATE_HZ;
+  vTaskDelay(initial_delay_ticks);
+  while (configuration.network.valid_bits !=
+         (NETWORK_WIFI_VALID_BIT | NETWORK_MQTT_VALID_BIT)) {
+    vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 60)); // check every hour
+  }
   mark_running_app_version_valid();
 }

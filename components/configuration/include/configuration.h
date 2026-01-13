@@ -2,6 +2,7 @@
 #define COMPONENTS_CONFIGURATION_INCLUDE_CONFIGURATION
 
 #include "cJSON.h"
+#include "esp_bit_defs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
@@ -26,13 +27,16 @@ struct pump_cycle_configuration_t {
 #define MQTT_USERNAME_MAX_LENGTH 64
 #define MQTT_PASSWORD_MAX_LENGTH 64
 
+#define NETWORK_WIFI_VALID_BIT BIT0
+#define NETWORK_MQTT_VALID_BIT BIT1
+
 struct network_configuration_t {
   char ssid[WIFI_SSID_MAX_LENGTH];              // SSID of WiFi network
   char password[WIFI_PASSWORD_MAX_LENGTH];      // Password of WiFi network
   char mqtt_broker[MQTT_BROKER_MAX_LENGTH];     // MQTT broker address
   char mqtt_username[MQTT_USERNAME_MAX_LENGTH]; // MQTT username
   char mqtt_password[MQTT_PASSWORD_MAX_LENGTH]; // MQTT password
-  bool valid;                                   // is the config valid
+  uint8_t valid_bits;                           // is the config valid
 };
 
 /**
