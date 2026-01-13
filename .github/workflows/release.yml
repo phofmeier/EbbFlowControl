@@ -37,7 +37,7 @@ jobs:
           # Extract filenames from flash_project_args (keeping paths)
           FILES_TO_ZIP=$(awk 'NR > 1 {print "./build_factory/"$2}' ./build_factory/flash_project_args | tr '\n' ' ')
           # Add additional files
-          FILES_TO_ZIP="$FILES_TO_ZIP EbbFlowControl-Setup_wifi_qr.png ./build_factory/flash_project_args"
+          FILES_TO_ZIP="$FILES_TO_ZIP EbbFlowControl-Setup_wifi_qr.png EbbFlowControl-Setup_connection_url_qr.png ./build_factory/flash_project_args"
           echo "Files to zip: $FILES_TO_ZIP"
           zip FactoryBuildFiles.zip $FILES_TO_ZIP
       - name: Get Changelog Entry
