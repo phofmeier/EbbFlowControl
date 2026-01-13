@@ -47,7 +47,7 @@ void app_main(void) {
 
   // Waiting here means we got configured.
   ESP_LOGI(TAG, "Configuration received. Starting WiFi in STA mode.");
-  ulTaskDelay(pdMS_TO_TICKS(10 * 1e3));
+  vTaskDelay(pdMS_TO_TICKS(10 * 1e3));
 
   // if configured destroy soft ap and start sta
   destroy_softap();
