@@ -11,6 +11,10 @@ Use the following labels:
 - `Fixed` for any bug fixes.
 - `Security` in case of vulnerabilities.
 
+## [0.1.1] - 2026-01-13
+
+- [Patch] Add configuration webpage for network configuration.
+
 ## [0.1.0] - 2026-01-03
 
 - [Minor] Add over the air update feature.
