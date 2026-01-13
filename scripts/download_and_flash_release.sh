@@ -4,6 +4,7 @@
 # Usage: ./download_and_flash_release.sh [OPTIONS] [VERSION]
 # Options:
 #   -p, --port PORT     Serial port (default: /dev/ttyUSB0)
+#   -r, --hard-reset    Perform hard reset and erase NVS partition
 #   -h, --help          Show this help
 # If VERSION is not specified, uses the latest tag
 
@@ -15,6 +16,7 @@ DEFAULT_PORT="/dev/ttyUSB0"
 
 # Parse arguments
 PORT="$DEFAULT_PORT"
+HARD_RESET=false
 VERSION=""
 
 while [[ $# -gt 0 ]]; do
@@ -23,12 +25,17 @@ while [[ $# -gt 0 ]]; do
             PORT="$2"
             shift 2
             ;;
+        -r|--hard-reset)
+            HARD_RESET=true
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS] [VERSION]"
             echo "Download and flash factory app from GitHub releases"
             echo ""
             echo "Options:"
             echo "  -p, --port PORT     Serial port (default: $DEFAULT_PORT)"
+            echo "  -r, --hard-reset    Perform hard reset and erase NVS partition"
             echo "  -h, --help          Show this help"
             echo ""
             echo "If VERSION is not specified, uses the latest tag"
@@ -87,6 +94,7 @@ echo "Download complete."
 # Extract zip
 echo "Extracting $ZIP_FILE..."
 mkdir -p "$EXTRACT_DIR"
+# Unzip always overwrites, no need to clean
 if ! unzip -q "$ZIP_PATH" -d "$EXTRACT_DIR"; then
     echo "Failed to extract $ZIP_FILE"
     exit 1
@@ -98,6 +106,18 @@ echo "Extracted successfully."
 echo "Flashing to ESP32..."
 
 cd "$EXTRACT_DIR/build_factory" || exit 1
+
+if [ "$HARD_RESET" = true ]; then
+    echo "Performing hard reset and erasing NVS partition..."
+    python -m esptool --chip esp32 --port "$PORT" erase_flash || {
+        echo "Failed to erase flash!"
+        # move back to original directory
+        cd - >/dev/null 2>&1
+        exit 1
+    }
+    echo "Flash erased."
+fi
+
 python -m esptool --chip esp32 --port "$PORT" -b 460800 --before default_reset --after hard_reset write_flash @"flash_project_args" || {
     echo "Flashing failed!"
     # move back to original directory
@@ -105,6 +125,10 @@ python -m esptool --chip esp32 --port "$PORT" -b 460800 --before default_reset -
     exit 1
 }
 echo "Flash complete!"
+
+if [ "$HARD_RESET" = true ]; then
+    echo "Hard reset performed - NVS partition erased."
+fi
 
 echo "Factory app $VERSION flashed successfully to $PORT."
 # move back to original directory
