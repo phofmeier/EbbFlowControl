@@ -93,7 +93,6 @@ void wifi_utils_init(void) {
   ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));
   ESP_LOGD(TAG, "wifi_init_sta finished.");
   s_wifi_event_group = xEventGroupCreate();
-  ESP_ERROR_CHECK_WITHOUT_ABORT(wifi_utils_connect_wifi_blocking());
 }
 
 void wifi_utils_connect() {
@@ -117,6 +116,8 @@ esp_err_t wifi_utils_connect_wifi_blocking() {
   if (bits & WIFI_CONNECTED_BIT) {
     ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
              configuration.network.ssid, configuration.network.password);
+    configuration.network.valid_bits |= NETWORK_WIFI_VALID_BIT;
+    save_configuration();
     return ESP_OK;
   }
 

@@ -11,6 +11,8 @@
 #include "wifi_utils_softap.h"
 #include "wifi_utils_sta.h"
 
+static const char *TAG = "factory_main";
+
 void app_main(void) {
   // Initialize storage
   initialize_nvs();
@@ -28,14 +30,16 @@ void app_main(void) {
   dhcp_set_captiveportal_url();
   serve_config_page(xTaskGetCurrentTaskHandle());
 
-  if (configuration.network.valid) {
+  if (configuration.network.valid_bits ==
+      (NETWORK_WIFI_VALID_BIT | NETWORK_MQTT_VALID_BIT)) {
     // if config valid wait for one minute and check if somebody connected to
     // the ap
     const u_int32_t wait_time = pdMS_TO_TICKS(60 * 1e3);
     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time));
   }
 
-  if (configuration.network.valid == false ||
+  if (configuration.network.valid_bits !=
+          (NETWORK_WIFI_VALID_BIT | NETWORK_MQTT_VALID_BIT) ||
       get_wifi_softap_connections() > 0) {
     // wait indefinitely for configuration
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -45,6 +49,12 @@ void app_main(void) {
   destroy_softap();
 
   wifi_utils_init();
+  esp_err_t wifi_error = wifi_utils_connect_wifi_blocking();
+  if (wifi_error != ESP_OK) {
+    configuration.network.valid_bits &= ~NETWORK_WIFI_VALID_BIT;
+    ESP_LOGE(TAG, "Could not connect to WiFi. Restarting...");
+    esp_restart();
+  }
   wifi_utils_init_sntp();
 
   // run ota updater task

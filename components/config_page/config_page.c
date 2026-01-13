@@ -4,6 +4,7 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,36 @@ extern const char config_page_end[] asm("_binary_config_page_html_end");
 
 static const char *TAG = "config_page";
 TaskHandle_t configuration_task_handle_ = NULL;
+
+/** URL decode a string in place */
+void urldecode2(char *dst, const char *src) {
+  while (*src) {
+    char a, b;
+    if ((*src == '%') && ((a = src[1]) && (b = src[2])) &&
+        (isxdigit(a) && isxdigit(b))) {
+      if (a >= 'a')
+        a -= 'a' - 'A';
+      if (a >= 'A')
+        a -= ('A' - 10);
+      else
+        a -= '0';
+      if (b >= 'a')
+        b -= 'a' - 'A';
+      if (b >= 'A')
+        b -= ('A' - 10);
+      else
+        b -= '0';
+      *dst++ = 16 * a + b;
+      src += 3;
+    } else if (*src == '+') {
+      *dst++ = ' ';
+      src++;
+    } else {
+      *dst++ = *src++;
+    }
+  }
+  *dst++ = '\0';
+}
 
 // Helper function to replace placeholder in HTML
 static void replace_placeholder(char *html, const char *placeholder,
@@ -31,14 +62,16 @@ static void replace_placeholder(char *html, const char *placeholder,
 
 // HTTP GET Handler
 static esp_err_t root_get_handler(httpd_req_t *req) {
+  // Estimated length for config values
   const u_int32_t configuration_length =
       3 + // Board ID length
       strlen(configuration.network.ssid) +
-      strlen(configuration.network.password) +
+      strlen(configuration.network.password) + //
+      40 +                                     // Wifi status length
       strlen(configuration.network.mqtt_broker) +
       strlen(configuration.network.mqtt_username) +
-      strlen(configuration.network
-                 .mqtt_password); // Estimated length for config values
+      strlen(configuration.network.mqtt_password) + //
+      40;                                           // MQTT status length
   const uint32_t root_len =
       config_page_end - config_page_start; // cppcheck-suppress comparePointers
   char *html = malloc(root_len + configuration_length + 1);
@@ -57,11 +90,23 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
   replace_placeholder(html, "{{ssid}}", configuration.network.ssid);
   replace_placeholder(html, "{{wifi_password}}",
                       configuration.network.password);
+
+  const char *wifi_status =
+      (configuration.network.valid_bits & NETWORK_WIFI_VALID_BIT)
+          ? "<span style='color: green;'>OK</span>"
+          : "<span style='color: red;'>FAILED</span>";
+  replace_placeholder(html, "{{wifi_status}}", wifi_status);
+
   replace_placeholder(html, "{{mqtt}}", configuration.network.mqtt_broker);
   replace_placeholder(html, "{{mqtt_username}}",
                       configuration.network.mqtt_username);
   replace_placeholder(html, "{{mqtt_password}}",
                       configuration.network.mqtt_password);
+  const char *mqtt_status =
+      (configuration.network.valid_bits & NETWORK_MQTT_VALID_BIT)
+          ? "<span style='color: green;'>OK</span>"
+          : "<span style='color: red;'>FAILED</span>";
+  replace_placeholder(html, "{{mqtt_status}}", mqtt_status);
 
   ESP_LOGI(TAG, "Serve root");
   httpd_resp_set_type(req, "text/html");
@@ -105,20 +150,15 @@ static esp_err_t set_config_post_handler(httpd_req_t *req) {
       if (strcmp(key, "board_id") == 0) {
         configuration.id = atoi(value);
       } else if (strcmp(key, "ssid") == 0) {
-        strncpy(configuration.network.ssid, value,
-                sizeof(configuration.network.ssid) - 1);
+        urldecode2(configuration.network.ssid, value);
       } else if (strcmp(key, "wifi_password") == 0) {
-        strncpy(configuration.network.password, value,
-                sizeof(configuration.network.password) - 1);
+        urldecode2(configuration.network.password, value);
       } else if (strcmp(key, "mqtt") == 0) {
-        strncpy(configuration.network.mqtt_broker, value,
-                sizeof(configuration.network.mqtt_broker) - 1);
+        urldecode2(configuration.network.mqtt_broker, value);
       } else if (strcmp(key, "mqtt_username") == 0) {
-        strncpy(configuration.network.mqtt_username, value,
-                sizeof(configuration.network.mqtt_username) - 1);
+        urldecode2(configuration.network.mqtt_username, value);
       } else if (strcmp(key, "mqtt_password") == 0) {
-        strncpy(configuration.network.mqtt_password, value,
-                sizeof(configuration.network.mqtt_password) - 1);
+        urldecode2(configuration.network.mqtt_password, value);
       }
     }
     token = strtok(NULL, "&");
@@ -159,7 +199,7 @@ esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err) {
 static httpd_handle_t start_webserver(void) {
   httpd_handle_t server = NULL;
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-  config.max_open_sockets = 13;
+  config.max_open_sockets = 5;
   config.lru_purge_enable = true;
 
   // Start the httpd server

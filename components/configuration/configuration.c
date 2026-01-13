@@ -37,7 +37,7 @@ struct configuration_t configuration = {
             .mqtt_broker = CONFIG_MQTT_BROKER_URI,
             .mqtt_username = CONFIG_MQTT_USERNAME,
             .mqtt_password = CONFIG_MQTT_PASSWORD,
-            .valid = false,
+            .valid_bits = 0x00,
         },
 };
 
@@ -92,10 +92,9 @@ void load_configuration() {
   ESP_ERROR_CHECK_WITHOUT_ABORT(
       nvs_get_str(my_handle, CONFIG_MQTT_PASSWORD_NAME,
                   configuration.network.mqtt_password, &mqtt_password_length));
-  uint8_t valid = 0;
-  ESP_ERROR_CHECK_WITHOUT_ABORT(
-      nvs_get_u8(my_handle, CONFIG_NETWORK_CONFIG_VALID_NAME, &valid));
-  configuration.network.valid = valid;
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_get_u8(my_handle,
+                                           CONFIG_NETWORK_CONFIG_VALID_NAME,
+                                           &configuration.network.valid_bits));
 
   nvs_close(my_handle);
 }
@@ -137,7 +136,7 @@ void save_configuration() {
                   configuration.network.mqtt_password));
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_set_u8(my_handle,
                                            CONFIG_NETWORK_CONFIG_VALID_NAME,
-                                           configuration.network.valid));
+                                           configuration.network.valid_bits));
 
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_commit(my_handle));
   nvs_close(my_handle);

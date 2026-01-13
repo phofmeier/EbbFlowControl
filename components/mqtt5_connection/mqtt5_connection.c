@@ -147,6 +147,8 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
     send_status_connected(client);
     send_current_configuration(client);
     set_connected();
+    configuration.network.valid_bits |= NETWORK_MQTT_VALID_BIT;
+    save_configuration();
     break;
   case MQTT_EVENT_DISCONNECTED:
     mqtt5_connected = false;
