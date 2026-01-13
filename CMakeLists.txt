@@ -24,7 +24,7 @@ set(QR_CODE_FILE "${CMAKE_SOURCE_DIR}/${CONFIG_WIFI_SOFT_AP_SSID}_wifi_qr.png")
 add_custom_command(
     OUTPUT ${QR_CODE_FILE}
     COMMAND ${CMAKE_COMMAND} -E echo "Generating WiFi QR code..."
-    COMMAND ./scripts/generate_wifi_qr_code.sh "${CONFIG_WIFI_SOFT_AP_SSID}" "${CONFIG_WIFI_SOFT_AP_PASSWORD}"
+    COMMAND ./scripts/generate_wifi_qr_code.sh "${CONFIG_WIFI_SOFT_AP_SSID}" "${CONFIG_WIFI_SOFT_AP_PASSWORD}" "192.168.4.1" "80" "WPA2"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     DEPENDS ${SDKCONFIG}
     COMMENT "Generating QR code for SoftAP WiFi credentials"
