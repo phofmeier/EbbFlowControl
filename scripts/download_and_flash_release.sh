@@ -56,6 +56,9 @@ if [ -z "$VERSION" ]; then
     fi
 fi
 
+# remove leading 'v' if present
+VERSION="${VERSION#v}"
+
 echo "Using version: $VERSION"
 echo "Serial port: $PORT"
 
@@ -97,8 +100,13 @@ echo "Flashing to ESP32..."
 cd "$EXTRACT_DIR/build_factory" || exit 1
 python -m esptool --chip esp32 --port "$PORT" -b 460800 --before default_reset --after hard_reset write_flash @"flash_project_args" || {
     echo "Flashing failed!"
+    # move back to original directory
+    cd - >/dev/null 2>&1
     exit 1
 }
 echo "Flash complete!"
 
 echo "Factory app $VERSION flashed successfully to $PORT."
+# move back to original directory
+cd - >/dev/null 2>&1
+exit 0

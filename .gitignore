@@ -62,3 +62,4 @@ tools/ota_server/ca_cert.pem
 tools/ota_server/ca_key.pem
 log.*
 FactoryBuildFiles.zip
+downloads/
