@@ -7,9 +7,13 @@ This repository hold the software for a controller for an automated ebb flow hyd
 
 ## First configuration
 
-Scan the QR Code.
+Scan the QR Code to connect to the Wifi.
 
 ![Wifi QR Code](EbbFlowControl-Setup_wifi_qr.png?raw=True)
+
+Scan the QR Code to show the Configuration Website.
+
+![Config Website URL](EbbFlowControl-Setup_connection_url_qr.png?raw=True)
 
 
 ## Over the Air (OTA) updates
