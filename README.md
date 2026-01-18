@@ -1,3 +1,4 @@
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/phofmeier/EbbFlowControl?label=Current%20Release)
 [![build](https://github.com/phofmeier/EbbFlowControl/actions/workflows/build.yml/badge.svg)](https://github.com/phofmeier/EbbFlowControl/actions/workflows/build.yml)
 [![pre-commit](https://github.com/phofmeier/EbbFlowControl/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/phofmeier/EbbFlowControl/actions/workflows/pre-commit.yml)
 
@@ -5,7 +6,11 @@
 
 This repository hold the software for a controller for an automated ebb flow hydroponic grow system. The controller runs on an ESP32 and can be configured via MQTT. The MQTT connection is additionally used to send status information and data for monitoring to an overall system.
 
-## First configuration
+## Quick Start
+
+Use the script `scripts/download_and_flash_release.sh` to download and flash the newest released software version to your ESP32 Board.
+
+### First configuration
 
 Scan the QR Code to connect to the Wifi.
 
@@ -18,23 +23,31 @@ Scan the QR Code to show the Configuration Website.
 
 ## Over the Air (OTA) updates
 
-## Factory vs Application
+There are two different apps built for this project.
 
-- Build application: `idf.py @profiles/app build`
-- Flash application: `idf.py -B build_app flash`
-- Build factory: `idf.py @profiles/factory build`
-- Flash factory: `idf.py -B build_factory flash`
+### Factory application
+
+The factory application does not hold the normal application. It only serves for a first initial configuration and downloading the latests main application. It starts an Wifi Access point and host a webpage to configure the device for the first time. The Wifi and webpage can be joind by scanning the qr-codes shown [here](#first-configuration). After submitting the correct configuration it downloads the latest version of the main application and starts it.
+
+### Main application
+
+The main application is running always. It serves all the implemented features. It can be updated over the air by having always teo copies of the application. Always when a new version is released it is downloaded automatically at around midnight and is written on en extra partition. Be aware that it never overrides the factory app. After a successful update the new code needs to run for more than 24h to be considered valid. A restart during this timeframe would consider the update as invalid and the old app would be booted again.
 
 ## Build and Flash
 
-The easiest way to build the software is to run the Docker devcontainer.
-Inside the container you can use the espressif idf build environment. Run the following commands to build flash and monitor the device on the software.
+If you do not need any special configuration you can just download and flash the prebuild release version with the script located `scripts/download_and_flash_release.sh`.
 
-```
-idf.py build
-idf.py flash
-idf.py monitor
-```
+If you need to change anything the easiest way to build the software is to run the Docker devcontainer.
+Inside the container you can use the espressif idf build environment.
+
+### Factory vs Application build
+
+For building the factory or main application the profile files can be used. The following list shows the how to use them.
+
+- Build application: `idf.py @profiles/app build`
+- Flash application: `idf.py @profiles/app flash`
+- Build factory: `idf.py @profiles/factory build`
+- Flash factory: `idf.py @profiles/factory flash`
 
 For configuration use the idf configuration environment. See the paragraph about the [configuration](#configuration) for more details.
 
@@ -143,6 +156,7 @@ Data:
 | id | uint_8 | Id of the specific board Integer between 0 and 255 |
 | connection | string | Current connection status to the MQTT Broker. "connected" or "disconnected" |
 | rssi_level | int | Connection strength of the Wifi connection. -100 if an error occurs. |
+| version | string | Version string of the current running version. |
 
 Example:
 
