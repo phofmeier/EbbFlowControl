@@ -11,6 +11,10 @@ Use the following labels:
 - `Fixed` for any bug fixes.
 - `Security` in case of vulnerabilities.
 
+## [UNRELEASED]
+
+- [Patch] Updated IDF version.
+
 ## [0.1.1] - 2026-01-13
 
 - [Patch] Add configuration webpage for network configuration.
