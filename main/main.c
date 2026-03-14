@@ -7,6 +7,7 @@
 
 #include "configuration.h"
 #include "data_logging.h"
+#include "light_control.h"
 #include "mqtt5_connection.h"
 #include "ota_scheduler.h"
 #include "ota_updater.h"
@@ -17,6 +18,7 @@
 void app_main(void) {
   // Configure GPIOS
   configure_pump_output();
+  initialize_light_control();
   // Initialize storage
   initialize_nvs();
   initialize_spiffs_storage();
@@ -40,6 +42,7 @@ void app_main(void) {
   create_data_logging_task();
   // Create control tasks
   ESP_ERROR_CHECK(add_notify_for_new_config(create_pump_control_task()));
+  ESP_ERROR_CHECK(add_notify_for_new_config(create_light_control_task()));
 
   // Might wait up to 24 hours for the first update.
   create_ota_scheduler_task();

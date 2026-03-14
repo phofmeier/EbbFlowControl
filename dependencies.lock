@@ -7,6 +7,12 @@ dependencies:
       path: /workspaces/EbbFlowControl/components/configuration
       type: local
     version: '*'
+  driver_gp8211s:
+    dependencies: []
+    source:
+      path: /workspaces/EbbFlowControl/components/driver_gp8211s
+      type: local
+    version: '*'
   idf:
     source:
       type: idf
@@ -35,9 +41,10 @@ dependencies:
     version: '*'
 direct_dependencies:
 - configuration
+- driver_gp8211s
 - idf
 - mqtt5_connection
 - wifi_utils
-manifest_hash: bebf590e1eae53fca6caaeb6b9e9b835d0401dad874932fc6c681f296c171d8b
+manifest_hash: d104ee58270d8e4d2e898bf56fd3a723503d67e7045432c3c6ade98f75e7a886
 target: esp32
 version: 2.0.0
