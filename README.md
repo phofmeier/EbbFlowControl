@@ -60,6 +60,8 @@ The controller runs on a ESP32 with additional Hardware.
 - ESP32 Controller
 - Relay Board
 - Nutrition Pump
+- Grow Light with 0 V - 10 V Dimmer input
+- GP8211S I2C to 0V - 10 V DAC
 
 ### Connections Overview
 
@@ -72,7 +74,7 @@ MQTT(MQTT)
 NutritionPump(Nutrition Pump)
 RelayBoard(Relay Board GPIO)
 GrowLight(Grow Light)
-GP2118S(Light Controller GP2118S)
+GP8211S(Light Controller GP8211S)
 EbbFlowControl(Ebb Flow Controller)
 
 MQTT <--> WIFI;
