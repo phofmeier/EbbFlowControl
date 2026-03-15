@@ -1,6 +1,7 @@
 #include "data_logging.h"
 
 #include "configuration.h"
+#include "light_data_store.h"
 #include "memory_data_store.h"
 #include "mqtt5_connection.h"
 #include "pump_data_store.h"
@@ -71,6 +72,7 @@ enum data_store_type {
   UNKNOWN,
   MEMORY_DATA_STORE,
   PUMP_DATA_STORE,
+  LIGHT_DATA_STORE,
 };
 
 static enum data_store_type current_data_store_ = UNKNOWN;
@@ -158,6 +160,28 @@ bool schedule_next_pump_data_send() {
   return true;
 }
 
+bool schedule_next_light_data_send() {
+  static struct light_data_item_t light_data_item;
+  const bool data_available = light_data_store_pop_and_stash(&light_data_item);
+  if (!data_available) {
+    ESP_LOGD(TAG, "No light data available to send");
+    return false;
+  }
+  cJSON *data = light_data_item_to_json(&light_data_item);
+  char *data_json_string = cJSON_PrintUnformatted(data);
+  cJSON_Delete(data);
+  current_data_id_ =
+      mqtt5_sent_message(CONFIG_MQTT_LIGHT_STATUS_TOPIC, data_json_string);
+  cJSON_free(data_json_string);
+
+  if (current_data_id_ < 0) {
+    ESP_LOGW(TAG, "Failed to send light data");
+    light_data_store_restore_stack();
+    return false;
+  }
+  return true;
+}
+
 /**
  * @brief Schedule the next data send operation.
  *
@@ -172,6 +196,9 @@ void schedule_next_data_send() {
   if (schedule_next_pump_data_send()) {
     current_data_store_ = PUMP_DATA_STORE;
     ESP_LOGD(TAG, "Successfully scheduled next pump data send");
+  } else if (schedule_next_light_data_send()) {
+    current_data_store_ = LIGHT_DATA_STORE;
+    ESP_LOGD(TAG, "Successfully scheduled next light data send");
   } else if (schedule_next_memory_data_send()) {
     current_data_store_ = MEMORY_DATA_STORE;
     ESP_LOGD(TAG, "Successfully scheduled next memory data send");
@@ -190,6 +217,10 @@ void restore_scheduled_data() {
     case PUMP_DATA_STORE:
       pump_data_store_restore_stack();
       ESP_LOGD(TAG, "Restoring pump data store");
+      break;
+    case LIGHT_DATA_STORE:
+      light_data_store_restore_stack();
+      ESP_LOGD(TAG, "Restoring light data store");
       break;
     case MEMORY_DATA_STORE:
       memory_data_store_restore_stack();
@@ -308,11 +339,21 @@ void data_logging_init() {
       xQueueCreateStatic(QUEUE_LENGTH, EVENT_QUEUE_ITEM_SIZE,
                          event_queue_storage_area, &event_queue_);
   pump_data_store_init();
+  light_data_store_init();
   memory_data_store_init();
 }
 
 void add_pump_data_item(bool pump_on) {
   pump_data_store_push(pump_on);
+  xQueueSendToBack(
+      event_queue_handle_,
+      &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_NEW_DATA},
+      portMAX_DELAY);
+  log_heap_size();
+}
+
+void add_light_data_item(uint16_t intensity) {
+  light_data_store_push(intensity);
   xQueueSendToBack(
       event_queue_handle_,
       &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_NEW_DATA},

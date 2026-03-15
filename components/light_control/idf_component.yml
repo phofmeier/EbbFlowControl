@@ -18,3 +18,5 @@ dependencies:
     path: "../configuration/"
   driver_gp8211s:
     path: "../driver_gp8211s/"
+  mqtt5_connection:
+    path: "../mqtt5_connection/"

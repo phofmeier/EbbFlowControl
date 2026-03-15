@@ -71,12 +71,16 @@ MQTT(MQTT)
 
 NutritionPump(Nutrition Pump)
 RelayBoard(Relay Board GPIO)
+GrowLight(Grow Light)
+GP2118S(Light Controller GP2118S)
 EbbFlowControl(Ebb Flow Controller)
 
 MQTT <--> WIFI;
 WIFI <--> EbbFlowControl;
 EbbFlowControl --> RelayBoard
 RelayBoard --> NutritionPump
+EbbFlowControl --> GP2118S
+GP2118S --> GrowLight
 ```
 
 ## Configuration
@@ -132,6 +136,17 @@ Key: `pump_cycles`
 | nr_pump_cycles        | unsigned short       | The length of "times_minutes_per_day" list. Number needs to be between 0 and `MAX_NUMBER_PUMP_CYCLES_PER_DAY`(default: `24`)                                                        |
 | times_minutes_per_day | List[unsigned short] | The actual timepoints the pump needs to run during a day in minutes of the day in local time. e.g. `[8*60, 13*60, 20*60+30]` relates to running the pump at 08:00, 13:00 and 20:30. |
 
+##### Grow Light Configuration
+
+Key: `light`
+
+| Key                | Typ                        | Description                                                      |
+|--------------------|----------------------------|------------------------------------------------------------------|
+| nr_light_changes   | uint8_t                    | Number of light changes per day (length of the lists below)                                  |
+| times_min_per_day  | List[uint16_t] | Timepoints for light changes in minutes of the day (local time)  |
+| intensity          | List[uint16_t] | Intensity values for each light change (0-0x7FFF)                 |
+| rise_time_min      | List[uint8_t]  | Rise time in minutes for each light change                       |
+
 ## Data Output
 
 The controller sends current data via MQTT to monitor the functionality. To use the data you need to subscribe to the specific channels.
@@ -179,3 +194,25 @@ Data:
 | id | uint_8 | Id of the specific board Integer between 0 and 255 |
 | ts | string | Current timestamp in ISO 8601 format including microseconds |
 | status | string | "start" when starting to pump and "stop" when stopping  |
+
+### Light
+
+Channel: `MQTT_LIGHT_STATUS_TOPIC` (default: `ef/efc/timed/light`)
+
+Data-Format: json
+
+Data:
+| Key       | Typ      | Description                        |
+|-----------|----------|------------------------------------|
+| id        | uint_8   | Id of the specific board           |
+| ts        | string   | Current timestamp in ISO 8601      |
+| intensity | uint16_t | Light intensity value (0-0x7FFF)    |
+
+Example:
+```json
+{
+  "id": 0,
+  "ts": "2026-03-15T12:34:56.123456+0100",
+  "intensity": 32768
+}
+```
