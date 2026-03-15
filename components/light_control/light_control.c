@@ -8,8 +8,13 @@
 #include <time.h>
 
 // #define TESTING_LIGHT_CONTROL
+#define MIN_LOG_INTERVAL_S 10 * 60
+#define SET_LIGHT_INTENSITY_INTERVAL_S 10
 
 static const char *TAG = "light_control";
+
+uint16_t last_light_intensity = 0;
+time_t last_light_log_time = 0;
 
 /**
  * @brief Get the time of the day.
@@ -28,28 +33,36 @@ void get_cur_time(struct tm *timeinfo) {
   localtime_r(&now, timeinfo);
 }
 
-void set_light_intensity(uint16_t intensity) {
+void set_light_intensity(uint16_t intensity, const int force_log) {
   gp8211s_set_output(intensity);
-  add_light_data_item(intensity);
+  // only log if changed and at most every 10 minutes
+  time_t now;
+  time(&now);
+  if (force_log || (intensity != last_light_intensity &&
+                    (now - last_light_log_time) > MIN_LOG_INTERVAL_S)) {
+    last_light_intensity = intensity;
+    time(&last_light_log_time);
+    add_light_data_item(intensity);
+  }
 }
 
 void initialize_light_control() {
   gp8211s_init_i2c();
   gp8211s_init_device();
-  gp8211s_set_output(0); // Start with light off
+  gp8211s_set_output(0);
 }
 
 void light_test() {
   // Example: Ramp up light intensity from 0 to max over 10 seconds
   for (uint16_t value = 0; value <= 0x7FFF; value += 0x0100) {
-    set_light_intensity(value);
+    set_light_intensity(value, 1);
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay 1 second between steps
   }
   // Hold at max intensity for 10 seconds
   vTaskDelay(pdMS_TO_TICKS(10000));
   // Ramp down light intensity from max to 0 over 10 seconds
   for (int16_t value = 0x7FFF; value >= 0; value -= 0x0100) {
-    set_light_intensity(value);
+    set_light_intensity(value, 1);
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay 1 second between steps
   }
   // Hold at off for 10 seconds
@@ -57,6 +70,7 @@ void light_test() {
 }
 
 void light_control_task(void *pvParameters) {
+  set_light_intensity(0, 1); // Start with light off
   int needs_reconfiguration = 1;
   uint8_t currently_used_index = 0;
 
@@ -85,9 +99,9 @@ void light_control_task(void *pvParameters) {
     if (configuration.light.nr_light_changes < 2) {
       // Trivial configuration. Set and wait for reconfiguration.
       if (configuration.light.nr_light_changes == 1) {
-        set_light_intensity(configuration.light.intensity[0]);
+        set_light_intensity(configuration.light.intensity[0], 1);
       } else {
-        set_light_intensity(0);
+        set_light_intensity(0, 1);
       }
       needs_reconfiguration = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
       continue;
@@ -123,17 +137,18 @@ void light_control_task(void *pvParameters) {
         output_intensity = 0;
       }
 
-      set_light_intensity((uint16_t)output_intensity);
+      set_light_intensity((uint16_t)output_intensity, 0);
 
-      // wait for 10s
-      needs_reconfiguration = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10 * 1e3));
+      // wait for next check
+      needs_reconfiguration = ulTaskNotifyTake(
+          pdTRUE, pdMS_TO_TICKS(SET_LIGHT_INTENSITY_INTERVAL_S * 1e3));
     } else {
       // wait for next change
       if (configuration.light.times_min_per_day[currently_used_index] <=
           current_min) {
         // set intensity to current level
-        set_light_intensity(
-            configuration.light.intensity[currently_used_index]);
+        set_light_intensity(configuration.light.intensity[currently_used_index],
+                            1);
         currently_used_index =
             (currently_used_index + 1) % configuration.light.nr_light_changes;
       }
@@ -152,7 +167,7 @@ void light_control_task(void *pvParameters) {
 
 TaskHandle_t create_light_control_task() {
   TaskHandle_t task_handle;
-  xTaskCreate(light_control_task, "light_control_task", 4096, NULL, 5,
-              &task_handle);
+  xTaskCreate(light_control_task, "light_control_task", 4096, NULL,
+              tskIDLE_PRIORITY + 2, &task_handle);
   return task_handle;
 }
