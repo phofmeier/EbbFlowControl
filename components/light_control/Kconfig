@@ -1,0 +1,7 @@
+menu "Light Application Config"
+    config MQTT_LIGHT_STATUS_TOPIC
+    string "MQTT Topic for the Light Status"
+    default "ef/efc/timed/light"
+    help
+        Set the MQTT topic to publish the pump status
+endmenu

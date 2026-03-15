@@ -47,6 +47,12 @@ void log_heap_size();
  */
 void add_pump_data_item(bool pump_on);
 /**
+ * @brief Add new light data to the data logging queue.
+ *
+ * @param intensity Intensity value to be logged.
+ */
+void add_light_data_item(uint16_t intensity);
+/**
  * @brief Set a connected event.
  *
  */

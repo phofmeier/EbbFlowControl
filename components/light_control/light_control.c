@@ -1,6 +1,7 @@
 #include "light_control.h"
 
 #include "configuration.h"
+#include "data_logging.h"
 #include "driver_gp8211s.h"
 #include <esp_log.h>
 #include <stdio.h>
@@ -27,6 +28,11 @@ void get_cur_time(struct tm *timeinfo) {
   localtime_r(&now, timeinfo);
 }
 
+void set_light_intensity(uint16_t intensity) {
+  gp8211s_set_output(intensity);
+  add_light_data_item(intensity);
+}
+
 void initialize_light_control() {
   gp8211s_init_i2c();
   gp8211s_init_device();
@@ -36,14 +42,14 @@ void initialize_light_control() {
 void light_test() {
   // Example: Ramp up light intensity from 0 to max over 10 seconds
   for (uint16_t value = 0; value <= 0x7FFF; value += 0x0100) {
-    gp8211s_set_output(value);
+    set_light_intensity(value);
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay 1 second between steps
   }
   // Hold at max intensity for 10 seconds
   vTaskDelay(pdMS_TO_TICKS(10000));
   // Ramp down light intensity from max to 0 over 10 seconds
   for (int16_t value = 0x7FFF; value >= 0; value -= 0x0100) {
-    gp8211s_set_output(value);
+    set_light_intensity(value);
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay 1 second between steps
   }
   // Hold at off for 10 seconds
@@ -79,9 +85,9 @@ void light_control_task(void *pvParameters) {
     if (configuration.light.nr_light_changes < 2) {
       // Trivial configuration. Set and wait for reconfiguration.
       if (configuration.light.nr_light_changes == 1) {
-        gp8211s_set_output(configuration.light.intensity[0]);
+        set_light_intensity(configuration.light.intensity[0]);
       } else {
-        gp8211s_set_output(0);
+        set_light_intensity(0);
       }
       needs_reconfiguration = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
       continue;
@@ -117,7 +123,7 @@ void light_control_task(void *pvParameters) {
         output_intensity = 0;
       }
 
-      gp8211s_set_output((uint16_t)output_intensity);
+      set_light_intensity((uint16_t)output_intensity);
 
       // wait for 10s
       needs_reconfiguration = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(10 * 1e3));
@@ -126,7 +132,8 @@ void light_control_task(void *pvParameters) {
       if (configuration.light.times_min_per_day[currently_used_index] <=
           current_min) {
         // set intensity to current level
-        gp8211s_set_output(configuration.light.intensity[currently_used_index]);
+        set_light_intensity(
+            configuration.light.intensity[currently_used_index]);
         currently_used_index =
             (currently_used_index + 1) % configuration.light.nr_light_changes;
       }

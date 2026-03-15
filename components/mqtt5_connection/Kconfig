@@ -47,16 +47,23 @@ menu "MQTT Application Configuration"
         help
             Set the topic on which the current config is published.
 
+
     config MQTT_DATA_LOGGING_PUMP_STORE_SIZE_MULTIPLE
         int "Size of the pump data store on the heap in multiples of page size."
         default 120
         help
-            Set the size of the pump data store on the heap in multiples of the page size. (Default 5)
+            Set the size of the pump data store on the heap in multiples of the page size. (Default 120)
 
     config MQTT_DATA_LOGGING_MEMORY_STORE_SIZE_MULTIPLE
         int "Size of the memory data store on the heap in multiples of page size."
         default 120
         help
-            Set the size of the memory data store on the heap in multiples of the page size. (Default 5)
+            Set the size of the memory data store on the heap in multiples of the page size. (Default 120)
+
+    config MQTT_DATA_LOGGING_LIGHT_STORE_SIZE_MULTIPLE
+        int "Size of the light data store on the heap in multiples of page size."
+        default 120
+        help
+            Set the size of the light data store on the heap in multiples of the page size. (Default 120)
 
 endmenu
