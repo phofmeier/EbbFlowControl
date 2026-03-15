@@ -16,6 +16,11 @@
 #define CONFIG_MQTT_USERNAME_NAME "NetMqttU"
 #define CONFIG_MQTT_PASSWORD_NAME "NetMqttP"
 #define CONFIG_NETWORK_CONFIG_VALID_NAME "NetConfV"
+
+#define CONFIG_LIGHT_NR_LIGHT_CHANGES_NAME "LcNrLc"
+#define CONFIG_LIGHT_TIMES_MIN_PER_DAY_NAME "LcTmpd"
+#define CONFIG_LIGHT_INTENSITY_NAME "LcInt"
+#define CONFIG_LIGHT_RISE_TIME_MIN_NAME "LcRtm"
 // Maximum number of task to be notified if the config changes
 #define CONFIG_MAX_NUMBER_TASK_TO_NOTIFY 20
 
@@ -39,6 +44,10 @@ struct configuration_t configuration = {
             .mqtt_password = CONFIG_MQTT_PASSWORD,
             .valid_bits = 0x00,
         },
+    .light = {.nr_light_changes = 2,
+              .times_min_per_day = {6 * 60, 17 * 60},
+              .intensity = {0x5FFF, 0x0000},
+              .rise_time_min = {60, 60}},
 };
 
 // Array containing all task handles which need to be notified
@@ -96,6 +105,23 @@ void load_configuration() {
                                            CONFIG_NETWORK_CONFIG_VALID_NAME,
                                            &configuration.network.valid_bits));
 
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_get_u8(my_handle, CONFIG_LIGHT_NR_LIGHT_CHANGES_NAME,
+                 &configuration.light.nr_light_changes));
+  size_t light_times_min_per_day_length =
+      sizeof(configuration.light.times_min_per_day);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_get_blob(
+      my_handle, CONFIG_LIGHT_TIMES_MIN_PER_DAY_NAME,
+      configuration.light.times_min_per_day, &light_times_min_per_day_length));
+  size_t light_intensity_length = sizeof(configuration.light.intensity);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_get_blob(my_handle, CONFIG_LIGHT_INTENSITY_NAME,
+                   configuration.light.intensity, &light_intensity_length));
+  size_t light_rise_time_min_length = sizeof(configuration.light.rise_time_min);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_get_blob(
+      my_handle, CONFIG_LIGHT_RISE_TIME_MIN_NAME,
+      configuration.light.rise_time_min, &light_rise_time_min_length));
+
   nvs_close(my_handle);
 }
 
@@ -137,6 +163,24 @@ void save_configuration() {
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_set_u8(my_handle,
                                            CONFIG_NETWORK_CONFIG_VALID_NAME,
                                            configuration.network.valid_bits));
+
+  // Light configuration
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_set_u8(my_handle, CONFIG_LIGHT_NR_LIGHT_CHANGES_NAME,
+                 configuration.light.nr_light_changes));
+  size_t light_times_min_per_day_length =
+      sizeof(configuration.light.times_min_per_day);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_set_blob(
+      my_handle, CONFIG_LIGHT_TIMES_MIN_PER_DAY_NAME,
+      configuration.light.times_min_per_day, light_times_min_per_day_length));
+  size_t light_intensity_length = sizeof(configuration.light.intensity);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(
+      nvs_set_blob(my_handle, CONFIG_LIGHT_INTENSITY_NAME,
+                   configuration.light.intensity, light_intensity_length));
+  size_t light_rise_time_min_length = sizeof(configuration.light.rise_time_min);
+  ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_set_blob(
+      my_handle, CONFIG_LIGHT_RISE_TIME_MIN_NAME,
+      configuration.light.rise_time_min, light_rise_time_min_length));
 
   ESP_ERROR_CHECK_WITHOUT_ABORT(nvs_commit(my_handle));
   nvs_close(my_handle);
@@ -182,8 +226,43 @@ void set_config_from_json(const char *json, const size_t json_length) {
         }
       }
     }
-    ESP_LOGI(TAG, "New Configuration set");
+    ESP_LOGI(TAG, "New Pump Configuration set");
   }
+
+  const cJSON *light = cJSON_GetObjectItem(root, "light");
+  if (light != NULL) {
+    const cJSON *nr_light_changes =
+        cJSON_GetObjectItem(light, "nr_light_changes");
+    const cJSON *times_min_per_day =
+        cJSON_GetObjectItem(light, "times_min_per_day");
+    const cJSON *intensity = cJSON_GetObjectItem(light, "intensity");
+    const cJSON *rise_time_min = cJSON_GetObjectItem(light, "rise_time_min");
+
+    if (nr_light_changes != NULL && times_min_per_day != NULL &&
+        intensity != NULL && rise_time_min != NULL) {
+      const int size_times_min_per_day = cJSON_GetArraySize(times_min_per_day);
+      const int size_intensity = cJSON_GetArraySize(intensity);
+      const int size_rise_time_min = cJSON_GetArraySize(rise_time_min);
+
+      if (size_times_min_per_day == nr_light_changes->valueint &&
+          size_intensity == nr_light_changes->valueint &&
+          size_rise_time_min == nr_light_changes->valueint &&
+          size_times_min_per_day <= LIGHT_CHANGES_MAX_NUMBER) {
+        configuration.light.nr_light_changes = nr_light_changes->valueint;
+
+        for (size_t i = 0; i < size_times_min_per_day; i++) {
+          configuration.light.times_min_per_day[i] =
+              cJSON_GetArrayItem(times_min_per_day, i)->valueint;
+          configuration.light.intensity[i] =
+              cJSON_GetArrayItem(intensity, i)->valueint;
+          configuration.light.rise_time_min[i] =
+              cJSON_GetArrayItem(rise_time_min, i)->valueint;
+        }
+      }
+    }
+    ESP_LOGI(TAG, "New Light Configuration set");
+  }
+
   cJSON_Delete(root);
   save_configuration();
   handle_new_configuration_callbacks();
@@ -205,6 +284,25 @@ cJSON *get_config_as_json() {
     cJSON_AddItemToArray(
         times_minutes_per_day_json_arr,
         cJSON_CreateNumber(configuration.pump_cycles.times_minutes_per_day[i]));
+  }
+
+  cJSON *light = cJSON_AddObjectToObject(root, "light");
+  cJSON_AddNumberToObject(light, "nr_light_changes",
+                          configuration.light.nr_light_changes);
+  cJSON *times_min_per_day_json_arr =
+      cJSON_AddArrayToObject(light, "times_min_per_day");
+  cJSON *intensity_json_arr = cJSON_AddArrayToObject(light, "intensity");
+  cJSON *rise_time_min_json_arr =
+      cJSON_AddArrayToObject(light, "rise_time_min");
+  for (size_t i = 0; i < configuration.light.nr_light_changes; i++) {
+    cJSON_AddItemToArray(
+        times_min_per_day_json_arr,
+        cJSON_CreateNumber(configuration.light.times_min_per_day[i]));
+    cJSON_AddItemToArray(intensity_json_arr,
+                         cJSON_CreateNumber(configuration.light.intensity[i]));
+    cJSON_AddItemToArray(
+        rise_time_min_json_arr,
+        cJSON_CreateNumber(configuration.light.rise_time_min[i]));
   }
 
   return root;

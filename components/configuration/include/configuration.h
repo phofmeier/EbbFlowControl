@@ -39,6 +39,15 @@ struct network_configuration_t {
   uint8_t valid_bits;                           // is the config valid
 };
 
+#define LIGHT_CHANGES_MAX_NUMBER 10
+
+struct light_configuration_t {
+  uint8_t nr_light_changes;
+  uint16_t times_min_per_day[LIGHT_CHANGES_MAX_NUMBER];
+  uint16_t intensity[LIGHT_CHANGES_MAX_NUMBER];
+  uint8_t rise_time_min[LIGHT_CHANGES_MAX_NUMBER];
+};
+
 /**
  * @brief Define the global configuration of the application.
  *
@@ -47,6 +56,7 @@ struct configuration_t {
   unsigned char id;
   struct pump_cycle_configuration_t pump_cycles;
   struct network_configuration_t network;
+  struct light_configuration_t light;
 };
 
 /**
