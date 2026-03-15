@@ -55,7 +55,7 @@ void light_data_store_write_to_disc_() {
              increment_file_id());
   }
   int fd = open(path_, O_RDWR | O_CREAT | O_TRUNC, 0);
-  int written_bytes = =
+  int written_bytes =
       write(fd, (const char *)light_data_items, sizeof(light_data_items));
   close(fd);
   if (written_bytes < 0) {
