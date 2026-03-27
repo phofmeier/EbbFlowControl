@@ -4,6 +4,7 @@
 #include "data_logging.h"
 #include "driver_gp8211s.h"
 #include <esp_log.h>
+#include <math.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -47,6 +48,7 @@ void set_light_intensity(uint16_t intensity, const int force_log) {
 }
 
 void initialize_light_control() {
+  ESP_LOGI(TAG, "Initializing light control");
   gp8211s_init_i2c();
   gp8211s_init_device();
   gp8211s_set_output(0);
@@ -55,6 +57,7 @@ void initialize_light_control() {
 void light_test() {
   // Example: Ramp up light intensity from 0 to max over 10 seconds
   for (uint16_t value = 0; value <= 0x7FFF; value += 0x0100) {
+    ESP_LOGI(TAG, "Setting light intensity to %u", value);
     set_light_intensity(value, 1);
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay 1 second between steps
   }
@@ -62,6 +65,7 @@ void light_test() {
   vTaskDelay(pdMS_TO_TICKS(10000));
   // Ramp down light intensity from max to 0 over 10 seconds
   for (int16_t value = 0x7FFF; value >= 0; value -= 0x0100) {
+    ESP_LOGI(TAG, "Setting light intensity to %u", value);
     set_light_intensity(value, 1);
     vTaskDelay(pdMS_TO_TICKS(1000)); // Delay 1 second between steps
   }
@@ -78,7 +82,6 @@ void light_control_task(void *pvParameters) {
 #if defined(TESTING_LIGHT_CONTROL)
     light_test();
     continue;
-
 #endif // TESTING_LIGHT_CONTROL
 
     struct tm timeinfo;
@@ -94,6 +97,8 @@ void light_control_task(void *pvParameters) {
           currently_used_index = i;
         }
       }
+      ESP_LOGI(TAG, "Initialize light control with index %i",
+               currently_used_index);
     }
 
     if (configuration.light.nr_light_changes < 2) {
@@ -103,13 +108,23 @@ void light_control_task(void *pvParameters) {
       } else {
         set_light_intensity(0, 1);
       }
+      ESP_LOGI(TAG, "Waiting for reconfiguration");
       needs_reconfiguration = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
       continue;
     }
 
-    if (configuration.light.times_min_per_day[currently_used_index] +
-            configuration.light.rise_time_min[currently_used_index] <=
-        current_min) {
+    ESP_LOGD(TAG,
+             "Current_min: %u, currently_used_index: %u, change_time: %u, "
+             "rise_time: %u",
+             current_min, currently_used_index,
+             configuration.light.times_min_per_day[currently_used_index],
+             configuration.light.rise_time_min[currently_used_index]);
+
+    if (current_min >=
+            configuration.light.times_min_per_day[currently_used_index] &&
+        configuration.light.times_min_per_day[currently_used_index] +
+                configuration.light.rise_time_min[currently_used_index] >
+            current_min) {
       // We are currently changing to the next intensity level. Calculate the
       // intensity level at the current timepoint.
       const uint8_t last_index =
@@ -130,12 +145,21 @@ void light_control_task(void *pvParameters) {
             seconds_since_last_change /
             (configuration.light.rise_time_min[currently_used_index] * 60.0);
       }
+      if (percent_rise_time_passed > 1.0) {
+        percent_rise_time_passed = 1.0;
+      }
+
       double output_intensity =
           last_intensity + percent_rise_time_passed * ((double)next_intensity -
                                                        (double)last_intensity);
       if (output_intensity < 0) {
         output_intensity = 0;
       }
+      ESP_LOGD(TAG,
+               "Changing light intensity from %u to %u. Percent rise time "
+               "passed: %.2f%%, output intensity: %.2f",
+               last_intensity, next_intensity, percent_rise_time_passed * 100.0,
+               output_intensity);
 
       set_light_intensity((uint16_t)output_intensity, 0);
 
@@ -145,7 +169,15 @@ void light_control_task(void *pvParameters) {
     } else {
       // wait for next change
       if (configuration.light.times_min_per_day[currently_used_index] <=
-          current_min) {
+              current_min // Current timepoint is in the past. Move to next
+          &&
+          (currently_used_index != 0 // Special case for first index
+
+           // If we are now smaller than the last change time we wrapped
+           // around midnight. Now we are allowed to move to the next
+           // index.
+           || current_min < configuration.light.times_min_per_day
+                                [configuration.light.nr_light_changes - 1])) {
         // set intensity to current level
         set_light_intensity(configuration.light.intensity[currently_used_index],
                             1);
@@ -153,14 +185,21 @@ void light_control_task(void *pvParameters) {
             (currently_used_index + 1) % configuration.light.nr_light_changes;
       }
 
-      const int wait_time_s =
+      double wait_time_s =
           (configuration.light.times_min_per_day[currently_used_index] -
            current_min) *
-          60 * 0.9;
+          60;
+      if (wait_time_s < 0) {
+        // Wrap around midnight
+        wait_time_s += 24.0 * 60.0 * 60.0;
+      }
+      // Wake up a little bit earlier
+      wait_time_s = wait_time_s * 0.8;
 
-      ESP_LOGD(TAG, "Wait for next change for %i s", wait_time_s);
-      needs_reconfiguration =
-          ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time_s * 1e3 + 100));
+      ESP_LOGI(TAG, "Wait for next change for %.2f s, index: %i", wait_time_s,
+               currently_used_index);
+      needs_reconfiguration = ulTaskNotifyTake(
+          pdTRUE, pdMS_TO_TICKS(floor(wait_time_s) * 1e3 + 100));
     }
   }
 }
