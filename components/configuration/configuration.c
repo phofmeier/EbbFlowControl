@@ -46,7 +46,7 @@ struct configuration_t configuration = {
         },
     .light = {.nr_light_changes = 2,
               .times_min_per_day = {6 * 60, 17 * 60},
-              .intensity = {0x5FFF, 0x0000},
+              .intensity = {0x3FFF, 0x0000},
               .rise_time_min = {60, 60}},
 };
 
