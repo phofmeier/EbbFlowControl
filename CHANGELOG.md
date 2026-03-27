@@ -11,7 +11,7 @@ Use the following labels:
 - `Fixed` for any bug fixes.
 - `Security` in case of vulnerabilities.
 
-## [UNRELEASED]
+## [0.2.0] - 2026-03-27
 
 - [Patch] Updated IDF version.
 - [Minor] Added control for a grow light.
