@@ -3,5 +3,5 @@ menu "Light Application Config"
     string "MQTT Topic for the Light Status"
     default "ef/efc/timed/light"
     help
-        Set the MQTT topic to publish the pump status
+        Set the MQTT topic to publish the grow light intensity
 endmenu
