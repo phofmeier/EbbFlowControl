@@ -82,8 +82,9 @@ VERSION="${VERSION#v}"
 echo "Using version: $VERSION"
 echo "Serial port: $PORT"
 
+EXTRACT_DIR="$DOWNLOAD_DIR/extracted_$VERSION"
 # Check if version already exists (unless force download is enabled)
-if [ "$FORCE_DOWNLOAD" = false ] && [ -d "$DOWNLOAD_DIR/extracted_$VERSION" ]; then
+if [ "$FORCE_DOWNLOAD" = false ] && [ -d "$EXTRACT_DIR" ]; then
     echo "Version $VERSION already downloaded. Use --force-download to re-download."
     echo "Proceeding with existing download..."
 else
@@ -96,7 +97,6 @@ else
     mkdir -p "$DOWNLOAD_DIR"
 
     ZIP_PATH="$DOWNLOAD_DIR/$ZIP_FILE"
-    EXTRACT_DIR="$DOWNLOAD_DIR/extracted_$VERSION"
 
     echo "Downloading $ZIP_FILE..."
     if ! curl -L -o "$ZIP_PATH" "$DOWNLOAD_URL"; then
