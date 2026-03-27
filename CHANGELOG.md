@@ -14,6 +14,7 @@ Use the following labels:
 ## [UNRELEASED]
 
 - [Patch] Updated IDF version.
+- [Minor] Added control for a grow light.
 
 ## [0.1.1] - 2026-01-13
 
