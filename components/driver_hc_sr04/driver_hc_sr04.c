@@ -69,6 +69,10 @@ esp_err_t hc_sr04_get_distance_cm(float *distance_cm) {
   // duration_s * 34320 / 2
   *distance_cm =
       ((echo_end_time - echo_start_time) / 1e6) * SONIC_SPEED_CM_PER_S / 2.0;
+  if (*distance_cm < 2.0 || *distance_cm > 400) {
+    return ESP_FAIL;
+  }
+
   return ESP_OK;
 }
 
