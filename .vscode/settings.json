@@ -20,5 +20,6 @@
     "*.tcc": "c",
     "ctime": "c"
   },
-  "idf.pythonInstallPath": "/usr/bin/python3"
+  "idf.pythonInstallPath": "/usr/bin/python3",
+  "idf.currentSetup": "/opt/esp/idf"
 }
