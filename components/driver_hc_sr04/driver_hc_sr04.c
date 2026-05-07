@@ -44,36 +44,45 @@ esp_err_t hc_sr04_get_distance_cm(float *distance_cm) {
   // Set trigger to high
   ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_set_level(CONFIG_HC_SR04_TRIGGER_PIN, 1));
   // wait for 10 micro seconds
-  esp_rom_delay_us(11); // Also seen code with 5 us
+  const int64_t trigger_start_time = esp_timer_get_time();
+  while (esp_timer_get_time() - trigger_start_time <= 10) {
+    // noop, just wait
+  }
   // set trigger to low
   ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_set_level(CONFIG_HC_SR04_TRIGGER_PIN, 0));
 
   if (gpio_get_level(CONFIG_HC_SR04_ECHO_PIN) == 1) {
     taskEXIT_CRITICAL(&hc_sr04_critical_section_mutex);
     ESP_LOGE(TAG, "Echo pin is already high after triggering measurement");
+    hc_sr04_init();  // Re-initialize sensor to recover from potential error
+                     // state
     return ESP_FAIL; // Echo pin should be low after triggering
   }
 
-  const int start_waiting_time = esp_timer_get_time();
+  const int64_t start_waiting_time = esp_timer_get_time();
   while (gpio_get_level(CONFIG_HC_SR04_ECHO_PIN) == 0) {
     // wait for echo to go high with timeout  Todo: which timeout?
     if (esp_timer_get_time() - start_waiting_time >
         WAIT_FOR_ECHO_HIGH_TIMEOUT_US) {
       taskEXIT_CRITICAL(&hc_sr04_critical_section_mutex);
-      ESP_LOGE(TAG, "Timeout waiting for echo to go high");
+      ESP_LOGE(TAG, "Timeout waiting for echo to go high.");
+      hc_sr04_init(); // Re-initialize sensor to recover from potential error
+                      // state
       return ESP_ERR_TIMEOUT; // Timeout waiting for echo to go high
     }
   }
-  const int echo_start_time = esp_timer_get_time();
+  const int64_t echo_start_time = esp_timer_get_time();
   while (gpio_get_level(CONFIG_HC_SR04_ECHO_PIN) == 1) {
     // wait for echo to go low with timeout
     if (esp_timer_get_time() - echo_start_time > WAIT_FOR_ECHO_LOW_TIMEOUT_US) {
       taskEXIT_CRITICAL(&hc_sr04_critical_section_mutex);
       ESP_LOGE(TAG, "Timeout waiting for echo to go low");
+      hc_sr04_init(); // Re-initialize sensor to recover from potential error
+                      // state
       return ESP_ERR_TIMEOUT; // Timeout waiting for echo to go low
     }
   }
-  const int echo_end_time = esp_timer_get_time();
+  const int64_t echo_end_time = esp_timer_get_time();
   taskEXIT_CRITICAL(&hc_sr04_critical_section_mutex);
   // calculate distance based on sonic speed 34320 cm/s bei 20 °C -> distance =
   // duration_s * 34320 / 2
