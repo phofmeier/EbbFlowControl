@@ -1,0 +1,13 @@
+menu "Level Sensor Application Config"
+    config MQTT_LEVEL_STATUS_TOPIC
+        string "MQTT Topic for the Level Sensor Status"
+        default "ef/efc/timed/level"
+        help
+            Set the MQTT topic to publish the level sensor distance in millimeters.
+
+    config LEVEL_SENSOR_UPDATE_INTERVAL
+        int "Level Sensor Update Interval (min)"
+        default 60
+        help
+            Set the interval in minutes for how often the level sensor data should be published.
+endmenu

@@ -53,6 +53,12 @@ void add_pump_data_item(bool pump_on);
  */
 void add_light_data_item(uint16_t intensity);
 /**
+ * @brief Add new level data to the data logging queue.
+ *
+ * @param distance_mm distance in millimeters
+ */
+void add_level_data_item(uint32_t distance_mm);
+/**
  * @brief Set a connected event.
  *
  */
