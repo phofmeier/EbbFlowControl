@@ -10,15 +10,16 @@
 
 static const char *TAG = "level_sensor";
 static const TickType_t LEVEL_SENSOR_MEASUREMENT_DELAY =
+    pdMS_TO_TICKS(CONFIG_LEVEL_SENSOR_UPDATE_INTERVAL * 60 * 1000);
 
 #define MEDIAN_FILTER_SIZE 5
 #define MAX_MEASUREMENT_ATTEMPTS 10
 
-    /***
-     * @brief Measure distance using the HC-SR04 sensor with a median filter to
-     * improve accuracy.
-     */
-    esp_err_t measure_distance_filtered_mm(uint32_t *distance_mm) {
+/***
+ * @brief Measure distance using the HC-SR04 sensor with a median filter to
+ * improve accuracy.
+ */
+esp_err_t measure_distance_filtered_mm(uint32_t *distance_mm) {
   uint32_t distance_filter_values[MEDIAN_FILTER_SIZE] = {0};
   size_t distance_filter_index = 0;
 
@@ -66,7 +67,7 @@ void level_sensor_init(void) { hc_sr04_init(); }
 static void level_sensor_task(void *pvParameters) {
   (void)pvParameters;
   while (true) {
-    uint32_t measured_distance_mm = 0.0;
+    uint32_t measured_distance_mm = 0;
     esp_err_t err = measure_distance_filtered_mm(&measured_distance_mm);
     if (err == ESP_OK) {
       ESP_LOGI(TAG, "Level distance: %u mm", measured_distance_mm);

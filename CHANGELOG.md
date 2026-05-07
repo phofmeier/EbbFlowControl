@@ -14,6 +14,8 @@ Use the following labels:
 ## [UNRELEASED]
 
 - [Patch] Update IDF version to 6.0.1.
+- [Minor] Add level sensor measuring the level of the nutrition solution.
+- [Patch] Rework data store and remove duplicated code.
 
 ## [0.2.0] - 2026-03-27
 
