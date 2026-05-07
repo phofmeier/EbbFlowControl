@@ -63,3 +63,4 @@ tools/ota_server/ca_key.pem
 log.*
 FactoryBuildFiles.zip
 downloads/
+managed_components/

@@ -1,4 +1,4 @@
-ARG DOCKER_TAG=v5.5.3
+ARG DOCKER_TAG=v6.0.1
 FROM espressif/idf:${DOCKER_TAG}
 
 ARG DEBIAN_FRONTEND=nointeractive
