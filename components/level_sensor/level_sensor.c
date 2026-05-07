@@ -37,7 +37,10 @@ esp_err_t measure_distance_filtered_mm(uint32_t *distance_mm) {
     } else {
       ESP_LOGW(TAG, "HC-SR04 measurement failed: %s", esp_err_to_name(err));
     }
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(
+        pdMS_TO_TICKS(100)); // Max Snensor frequency is 40 Hz, so wait at least
+                             // 25 ms between measurements. Using 100 ms to be
+                             // safe and reduce sensor stress.
   }
 
   if (distance_filter_index != MEDIAN_FILTER_SIZE) {
