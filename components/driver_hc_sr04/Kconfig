@@ -1,0 +1,13 @@
+menu "HC-SR04 Driver"
+    config HC_SR04_TRIGGER_PIN
+        int "GPIO Pin for HC-SR04 Trigger"
+        default 5
+        help
+            Set the GPIO pin number used to trigger the HC-SR04 sensor.
+
+    config HC_SR04_ECHO_PIN
+        int "GPIO Pin for HC-SR04 Echo"
+        default 18
+        help
+            Set the GPIO pin number used to receive the echo signal from the HC-SR04 sensor.
+endmenu

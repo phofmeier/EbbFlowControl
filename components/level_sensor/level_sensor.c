@@ -1,0 +1,38 @@
+#include "level_sensor.h"
+#include "driver_hc_sr04.h"
+#include "esp_err.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+static const char *TAG = "level_sensor";
+static const TickType_t LEVEL_SENSOR_MEASUREMENT_DELAY =
+    pdMS_TO_TICKS(10 * 60 * 1000);
+
+void level_sensor_init(void) { hc_sr04_init(); }
+
+static void level_sensor_task(void *pvParameters) {
+  (void)pvParameters;
+  while (true) {
+    float measured_distance_cm = 0.0f;
+    esp_err_t err = hc_sr04_get_distance_cm(&measured_distance_cm);
+    if (err == ESP_OK) {
+      ESP_LOGI(TAG, "Level distance: %.2f cm", measured_distance_cm);
+    } else {
+      ESP_LOGW(TAG, "HC-SR04 measurement failed: %s", esp_err_to_name(err));
+    }
+    vTaskDelay(LEVEL_SENSOR_MEASUREMENT_DELAY);
+  }
+}
+
+TaskHandle_t create_level_sensor_task(void) {
+  TaskHandle_t handle = NULL;
+  BaseType_t result = xTaskCreate(level_sensor_task, "level_sensor",
+                                  configMINIMAL_STACK_SIZE + 2048, NULL,
+                                  tskIDLE_PRIORITY + 1, &handle);
+  if (result != pdPASS) {
+    ESP_LOGE(TAG, "Failed to create level sensor task");
+    return NULL;
+  }
+  return handle;
+}
