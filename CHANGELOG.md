@@ -13,6 +13,8 @@ Use the following labels:
 
 ## [UNRELEASED]
 
+- [Patch] Update IDF version to 6.0.1.
+
 ## [0.2.0] - 2026-03-27
 
 - [Patch] Updated IDF version.
