@@ -6,6 +6,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "sdkconfig.h"
+#include "state.h"
 #include <math.h>
 #include <stdio.h>
 #include <sys/time.h>
@@ -23,6 +24,7 @@ static const char *TAG = "pump_control";
 void stop_pump() {
   gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 1);
   add_pump_data_item(false);
+  set_pump_on(0);
 }
 
 /**
@@ -32,6 +34,7 @@ void stop_pump() {
 void start_pump() {
   gpio_set_level(CONFIG_PUMP_GPIO_OUTPUT_PIN, 0);
   add_pump_data_item(true);
+  set_pump_on(1);
 }
 
 /**

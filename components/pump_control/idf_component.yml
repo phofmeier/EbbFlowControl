@@ -17,5 +17,7 @@ dependencies:
   #   public: true
   configuration:
     path: "../configuration/"
+  state:
+    path: "../state/"
   mqtt5_connection:
     path: "../mqtt5_connection/"

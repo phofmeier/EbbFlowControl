@@ -1,16 +1,20 @@
 #include "level_sensor.h"
+#include "configuration.h"
 #include "data_logging.h"
 #include "driver_hc_sr04.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "state.h"
+#include <esp_timer.h>
 #include <math.h>
 #include <stdint.h>
 
 static const char *TAG = "level_sensor";
-static const TickType_t LEVEL_SENSOR_MEASUREMENT_DELAY =
-    pdMS_TO_TICKS(CONFIG_LEVEL_SENSOR_UPDATE_INTERVAL * 60 * 1000);
+
+#define LEVEL_SENSOR_PUMPING_MEASUREMENT_FREQUENCY_US 10 * 1e6      // 10 s
+#define LEVEL_SENSOR_RESTING_MEASUREMENT_FREQUENCY_US 30 * 60 * 1e6 // 30 min
 
 #define MEDIAN_FILTER_SIZE 5
 #define MAX_MEASUREMENT_ATTEMPTS 10
@@ -19,7 +23,7 @@ static const TickType_t LEVEL_SENSOR_MEASUREMENT_DELAY =
  * @brief Measure distance using the HC-SR04 sensor with a median filter to
  * improve accuracy.
  */
-esp_err_t measure_distance_filtered_mm(uint16_t *distance_mm) {
+static esp_err_t measure_distance_filtered_mm(uint16_t *distance_mm) {
   uint16_t distance_filter_values[MEDIAN_FILTER_SIZE] = {0};
   size_t distance_filter_index = 0;
 
@@ -65,20 +69,76 @@ esp_err_t measure_distance_filtered_mm(uint16_t *distance_mm) {
   return ESP_OK;
 }
 
+enum level_sensor_state_t {
+  PUMPING,
+  BACKFLOW,
+  RESTING,
+};
+
+static enum level_sensor_state_t current_sensor_state = RESTING;
+static int64_t pump_stop_time = 0;
+
+/***
+ * @brief Calculate the measurement frequency based on the current sensor state.
+ * During pumping we use the higher frequency. After pumping we assume two times
+ * the pumping time the backflow which is also sampled with high frequency.
+ * During resting a lower frequency is applied.
+ */
+static int64_t calculate_measurement_frequency_us() {
+  if (global_state.pumping_state.pump_on) {
+    current_sensor_state = PUMPING;
+  } else {
+    if (current_sensor_state == PUMPING) {
+      // Pump just stopped.
+      current_sensor_state = BACKFLOW;
+      pump_stop_time = esp_timer_get_time();
+    } else if (current_sensor_state == BACKFLOW &&
+               esp_timer_get_time() - pump_stop_time >
+                   2 * configuration.pump_cycles.pump_time_s * 1e6) {
+      // Assume backflow is finished after 2 pump cycles
+      current_sensor_state = RESTING;
+    }
+  }
+
+  switch (current_sensor_state) {
+  case PUMPING:
+  case BACKFLOW:
+    return LEVEL_SENSOR_PUMPING_MEASUREMENT_FREQUENCY_US;
+  case RESTING:
+  default:
+    return LEVEL_SENSOR_RESTING_MEASUREMENT_FREQUENCY_US;
+  }
+}
+
 void level_sensor_init(void) { hc_sr04_init(); }
 
 static void level_sensor_task(void *pvParameters) {
-  (void)pvParameters;
+  int64_t next_measurement_time = esp_timer_get_time();
   while (true) {
     uint16_t measured_distance_mm = 0;
-    esp_err_t err = measure_distance_filtered_mm(&measured_distance_mm);
+    const esp_err_t err = measure_distance_filtered_mm(&measured_distance_mm);
     if (err == ESP_OK) {
       ESP_LOGI(TAG, "Level distance: %u mm", measured_distance_mm);
       add_level_data_item(measured_distance_mm);
     } else {
       ESP_LOGW(TAG, "HC-SR04 measurement failed: %s", esp_err_to_name(err));
     }
-    vTaskDelay(LEVEL_SENSOR_MEASUREMENT_DELAY);
+
+    const int64_t frequency_us = calculate_measurement_frequency_us();
+    next_measurement_time = next_measurement_time + frequency_us;
+    const int64_t now = esp_timer_get_time();
+    if (next_measurement_time <= now) {
+      // We are already past the next measurement time. Just continue without
+      // waiting.
+      continue;
+    }
+    const int64_t wait_time_us = next_measurement_time - now;
+
+    // wait for next measurement or state change, whichever comes first.
+    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time_us / 1000)) > 0) {
+      // State changed, measure immediately.
+      next_measurement_time = esp_timer_get_time();
+    }
   }
 }
 

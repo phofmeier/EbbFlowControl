@@ -18,6 +18,8 @@ dependencies:
   #   public: true
   configuration:
     path: "../configuration/"
+  state:
+    path: "../state/"
   driver_hc_sr04:
     path: "../driver_hc_sr04/"
   mqtt5_connection:
