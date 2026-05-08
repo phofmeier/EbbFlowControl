@@ -6,7 +6,7 @@
 #include <sys/time.h>
 
 #define MAX_LEVEL_DATA_ITEMS                                                   \
-  (CONFIG_MQTT_DATA_LOGGING_LIGHT_STORE_SIZE_MULTIPLE *                        \
+  (CONFIG_MQTT_DATA_LOGGING_STORE_SIZE_MULTIPLE *                              \
    (CONFIG_SPIFFS_PAGE_SIZE / sizeof(struct level_data_item_t)))
 
 static struct generic_data_store_t level_data_store;
@@ -41,7 +41,7 @@ void level_data_store_restore_stack() {
   generic_data_store_restore_stack(&level_data_store);
 }
 
-void level_data_store_push(uint32_t distance_mm) {
+void level_data_store_push(uint16_t distance_mm) {
   time_t current_time;
   time(&current_time);
   struct level_data_item_t item = {.timestamp = current_time,

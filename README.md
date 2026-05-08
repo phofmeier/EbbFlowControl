@@ -230,3 +230,25 @@ Example:
   "intensity": 32768
 }
 ```
+
+### Level
+
+Channel: `MQTT_LEVEL_STATUS_TOPIC` (default: `"ef/efc/timed/level"`)
+
+Data-Format: json
+
+Data:
+| Key       | Typ      | Description                        |
+|-----------|----------|------------------------------------|
+| id        | uint_8   | Id of the specific board           |
+| ts        | string   | Current timestamp in ISO 8601      |
+| distance_mm | uint16_t | distance measured by the level sensor    |
+
+Example:
+```json
+{
+  "id": 0,
+  "ts": "2026-03-15T12:34:56.123456+0100",
+  "distance_mm": 132
+}
+```

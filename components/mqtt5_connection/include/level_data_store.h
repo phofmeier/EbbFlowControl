@@ -9,7 +9,7 @@
 
 struct level_data_item_t {
   time_t timestamp;     // timestamp when the data was collected
-  uint32_t distance_mm; // level distance in millimeters
+  uint16_t distance_mm; // level distance in millimeters
 };
 
 /**
@@ -27,7 +27,7 @@ void level_data_store_restore_stack();
  *
  * @param distance_mm level distance in millimeters
  */
-void level_data_store_push(uint32_t distance_mm);
+void level_data_store_push(uint16_t distance_mm);
 
 /**
  * @brief Pop a level data item from the store and save it on a stash.
