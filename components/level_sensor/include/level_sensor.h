@@ -7,6 +7,7 @@
 #define COMPONENTS_LEVEL_SENSOR_INCLUDE_LEVEL_SENSOR
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
 #include "freertos/task.h"
 
 /**

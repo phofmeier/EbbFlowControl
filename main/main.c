@@ -13,6 +13,7 @@
 #include "ota_scheduler.h"
 #include "ota_updater.h"
 #include "pump_control.h"
+#include "state.h"
 #include "wifi_utils_sntp.h"
 #include "wifi_utils_sta.h"
 
@@ -46,7 +47,8 @@ void app_main(void) {
   // Create control tasks
   ESP_ERROR_CHECK(add_notify_for_new_config(create_pump_control_task()));
   ESP_ERROR_CHECK(add_notify_for_new_config(create_light_control_task()));
-  create_level_sensor_task();
+
+  ESP_ERROR_CHECK(add_notify_for_state_change(create_level_sensor_task()));
 
   // Might wait up to 24 hours for the first update.
   create_ota_scheduler_task();

@@ -51,9 +51,9 @@ struct configuration_t configuration = {
 };
 
 // Array containing all task handles which need to be notified
-TaskHandle_t tasks_to_notify[CONFIG_MAX_NUMBER_TASK_TO_NOTIFY];
+static TaskHandle_t tasks_to_notify[CONFIG_MAX_NUMBER_TASK_TO_NOTIFY];
 // Number of task handles in the array.
-uint16_t nr_task_to_notify = 0;
+static uint16_t nr_task_to_notify = 0;
 
 void load_configuration() {
   ESP_LOGI(TAG, "Load Configuration");

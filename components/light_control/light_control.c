@@ -14,8 +14,8 @@
 
 static const char *TAG = "light_control";
 
-uint16_t last_light_intensity = 0;
-time_t last_light_log_time = 0;
+static uint16_t last_light_intensity = 0;
+static time_t last_light_log_time = 0;
 
 /**
  * @brief Get the time of the day.
@@ -23,7 +23,7 @@ time_t last_light_log_time = 0;
  * The configured local timezone is used. The number represents the minutes
  * since the start of the day.
  */
-void get_cur_time(struct tm *timeinfo) {
+static void get_cur_time(struct tm *timeinfo) {
   // set timezone
   setenv("TZ", CONFIG_LOCAL_TIME_ZONE, 1);
   tzset();
