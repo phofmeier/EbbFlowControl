@@ -8,7 +8,10 @@
 
 #define WAIT_FOR_ECHO_HIGH_TIMEOUT_US 1000000 // 1 second timeout
 #define WAIT_FOR_ECHO_LOW_TIMEOUT_US 1000000  // 1 second timeout
-#define SONIC_SPEED_CM_PER_S 34320.0          // Speed of sound in cm/s at 20 °C
+
+// Speed of sound at 20 °C is approximately 343.2 m/s, which is 0.3432 mm/µs
+// divided by 2 considering round trip.
+#define SONIC_SPEED_MM_PER_MUS_2 0.1716
 
 static const char *TAG = "hc_sr04";
 
@@ -39,7 +42,7 @@ void hc_sr04_init() {
   ESP_ERROR_CHECK(gpio_config(&echo_io_conf));
 }
 
-esp_err_t hc_sr04_get_distance_cm(float *distance_cm) {
+esp_err_t hc_sr04_get_distance_mm(float *distance_mm) {
   taskENTER_CRITICAL(&hc_sr04_critical_section_mutex);
   // Set trigger to high
   ESP_ERROR_CHECK_WITHOUT_ABORT(gpio_set_level(CONFIG_HC_SR04_TRIGGER_PIN, 1));
@@ -86,15 +89,11 @@ esp_err_t hc_sr04_get_distance_cm(float *distance_cm) {
   taskEXIT_CRITICAL(&hc_sr04_critical_section_mutex);
   // calculate distance based on sonic speed 34320 cm/s bei 20 °C -> distance =
   // duration_s * 34320 / 2
-  *distance_cm =
-      ((echo_end_time - echo_start_time) / 1e6) * SONIC_SPEED_CM_PER_S / 2.0;
-  if (*distance_cm < 2.0 || *distance_cm > 400) {
-    ESP_LOGI(TAG, "Measured distance out of range: %.2f cm", *distance_cm);
+  *distance_mm = (echo_end_time - echo_start_time) * SONIC_SPEED_MM_PER_MUS_2;
+  if (*distance_mm < 20.0 || *distance_mm > 4000.0) {
+    ESP_LOGI(TAG, "Measured distance out of range: %.2f mm", *distance_mm);
     return ESP_FAIL;
   }
 
   return ESP_OK;
 }
-
-// add comment on how to temp compensate for sonic speed if needed, e.g. based
-// on temperature sensor or fixed value
