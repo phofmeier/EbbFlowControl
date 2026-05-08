@@ -19,18 +19,18 @@ static const TickType_t LEVEL_SENSOR_MEASUREMENT_DELAY =
  * @brief Measure distance using the HC-SR04 sensor with a median filter to
  * improve accuracy.
  */
-esp_err_t measure_distance_filtered_mm(uint32_t *distance_mm) {
-  uint32_t distance_filter_values[MEDIAN_FILTER_SIZE] = {0};
+esp_err_t measure_distance_filtered_mm(uint16_t *distance_mm) {
+  uint16_t distance_filter_values[MEDIAN_FILTER_SIZE] = {0};
   size_t distance_filter_index = 0;
 
   for (size_t i = 0; i < MAX_MEASUREMENT_ATTEMPTS &&
                      distance_filter_index < MEDIAN_FILTER_SIZE;
        i++) {
-    float measured_distance_cm = 0.0f;
-    esp_err_t err = hc_sr04_get_distance_cm(&measured_distance_cm);
+    float measured_distance_mm_raw = 0.0f;
+    esp_err_t err = hc_sr04_get_distance_mm(&measured_distance_mm_raw);
     if (err == ESP_OK) {
-      uint32_t measured_distance_mm =
-          (uint32_t)roundf(measured_distance_cm * 10.0f);
+      const uint16_t measured_distance_mm =
+          (uint16_t)roundf(measured_distance_mm_raw);
       distance_filter_values[distance_filter_index] = measured_distance_mm;
       ESP_LOGI(TAG, "Measured distance: %u mm", measured_distance_mm);
       distance_filter_index++;
@@ -53,14 +53,14 @@ esp_err_t measure_distance_filtered_mm(uint32_t *distance_mm) {
   for (size_t i = 0; i < MEDIAN_FILTER_SIZE - 1; i++) {
     for (size_t j = 0; j < MEDIAN_FILTER_SIZE - i - 1; j++) {
       if (distance_filter_values[j] > distance_filter_values[j + 1]) {
-        uint32_t temp = distance_filter_values[j];
+        uint16_t temp = distance_filter_values[j];
         distance_filter_values[j] = distance_filter_values[j + 1];
         distance_filter_values[j + 1] = temp;
       }
     }
   }
 
-  uint32_t median_distance_mm = distance_filter_values[MEDIAN_FILTER_SIZE / 2];
+  uint16_t median_distance_mm = distance_filter_values[MEDIAN_FILTER_SIZE / 2];
   *distance_mm = median_distance_mm;
   return ESP_OK;
 }
