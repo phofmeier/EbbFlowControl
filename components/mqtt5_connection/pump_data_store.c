@@ -6,7 +6,7 @@
 #include <sys/time.h>
 
 #define MAX_PUMP_DATA_ITEMS                                                    \
-  (CONFIG_MQTT_DATA_LOGGING_PUMP_STORE_SIZE_MULTIPLE *                         \
+  (CONFIG_MQTT_DATA_LOGGING_STORE_SIZE_MULTIPLE *                              \
    (CONFIG_SPIFFS_PAGE_SIZE / sizeof(struct pump_data_item_t)))
 
 static struct generic_data_store_t pump_data_store;

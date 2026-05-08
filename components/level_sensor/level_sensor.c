@@ -70,7 +70,7 @@ void level_sensor_init(void) { hc_sr04_init(); }
 static void level_sensor_task(void *pvParameters) {
   (void)pvParameters;
   while (true) {
-    uint32_t measured_distance_mm = 0;
+    uint16_t measured_distance_mm = 0;
     esp_err_t err = measure_distance_filtered_mm(&measured_distance_mm);
     if (err == ESP_OK) {
       ESP_LOGI(TAG, "Level distance: %u mm", measured_distance_mm);

@@ -393,7 +393,7 @@ void add_light_data_item(uint16_t intensity) {
   log_heap_size();
 }
 
-void add_level_data_item(uint32_t distance_mm) {
+void add_level_data_item(uint16_t distance_mm) {
   level_data_store_push(distance_mm);
   xQueueSendToBack(
       event_queue_handle_,
