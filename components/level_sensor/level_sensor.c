@@ -36,7 +36,7 @@ static esp_err_t measure_distance_filtered_mm(uint16_t *distance_mm) {
       const uint16_t measured_distance_mm =
           (uint16_t)roundf(measured_distance_mm_raw);
       distance_filter_values[distance_filter_index] = measured_distance_mm;
-      ESP_LOGI(TAG, "Measured distance: %u mm", measured_distance_mm);
+      ESP_LOGD(TAG, "Measured distance: %u mm", measured_distance_mm);
       distance_filter_index++;
     } else {
       ESP_LOGW(TAG, "HC-SR04 measurement failed: %s", esp_err_to_name(err));
@@ -92,11 +92,13 @@ static int64_t calculate_measurement_frequency_us() {
       // Pump just stopped.
       current_sensor_state = BACKFLOW;
       pump_stop_time = esp_timer_get_time();
+      ESP_LOGD(TAG, "Pump stopped, switching to backflow state");
     } else if (current_sensor_state == BACKFLOW &&
-               esp_timer_get_time() - pump_stop_time >
-                   2 * configuration.pump_cycles.pump_time_s * 1e6) {
+               (esp_timer_get_time() - pump_stop_time) >
+                   (2LL * configuration.pump_cycles.pump_time_s * 1000000LL)) {
       // Assume backflow is finished after 2 pump cycles
       current_sensor_state = RESTING;
+      ESP_LOGD(TAG, "Assuming backflow finished, switching to resting state");
     }
   }
 
@@ -118,7 +120,7 @@ static void level_sensor_task(void *pvParameters) {
     uint16_t measured_distance_mm = 0;
     const esp_err_t err = measure_distance_filtered_mm(&measured_distance_mm);
     if (err == ESP_OK) {
-      ESP_LOGI(TAG, "Level distance: %u mm", measured_distance_mm);
+      ESP_LOGD(TAG, "Level distance: %u mm", measured_distance_mm);
       add_level_data_item(measured_distance_mm);
     } else {
       ESP_LOGW(TAG, "HC-SR04 measurement failed: %s", esp_err_to_name(err));
@@ -130,13 +132,20 @@ static void level_sensor_task(void *pvParameters) {
     if (next_measurement_time <= now) {
       // We are already past the next measurement time. Just continue without
       // waiting.
+      ESP_LOGD(TAG,
+               "Next measurement time already passed (by %lld ms), measuring "
+               "immediately",
+               (now - next_measurement_time) / 1000);
       continue;
     }
     const int64_t wait_time_us = next_measurement_time - now;
+    ESP_LOGD(TAG, "Waiting for %lld ms until next measurement",
+             wait_time_us / 1000);
 
     // wait for next measurement or state change, whichever comes first.
     if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time_us / 1000)) > 0) {
       // State changed, measure immediately.
+      ESP_LOGD(TAG, "State changed, measuring immediately");
       next_measurement_time = esp_timer_get_time();
     }
   }
@@ -146,7 +155,7 @@ TaskHandle_t create_level_sensor_task(void) {
   TaskHandle_t handle = NULL;
   BaseType_t result = xTaskCreate(level_sensor_task, "level_sensor",
                                   configMINIMAL_STACK_SIZE + 2048, NULL,
-                                  tskIDLE_PRIORITY + 1, &handle);
+                                  tskIDLE_PRIORITY + 2, &handle);
   if (result != pdPASS) {
     ESP_LOGE(TAG, "Failed to create level sensor task");
     return NULL;
