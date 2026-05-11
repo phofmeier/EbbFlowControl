@@ -56,8 +56,11 @@ void app_main(void) {
   // Mark config as valid after successful wifi and mqtt connection
 
   // After running for 25 hours without any errors we can mark it valid.
-  static const uint32_t initial_delay_ticks = 25 * 60 * 60 * configTICK_RATE_HZ;
-  vTaskDelay(initial_delay_ticks);
+  const TickType_t one_hour_ticks = pdMS_TO_TICKS(60ULL * 60ULL * 1000ULL);
+  for (int i = 0; i < 25; i++) {
+    vTaskDelay(one_hour_ticks);
+  }
+
   while (configuration.network.valid_bits !=
          (NETWORK_WIFI_VALID_BIT | NETWORK_MQTT_VALID_BIT)) {
     vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 60)); // check every hour
