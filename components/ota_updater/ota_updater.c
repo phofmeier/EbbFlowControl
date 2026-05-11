@@ -19,7 +19,7 @@ struct application_version_t {
   int patch;
   int build;
   bool dirty;
-  char description[9];
+  char description[10];
 };
 
 void log_application_version(const char *prefix,
@@ -63,7 +63,11 @@ void extract_application_version(const char *app_version_str,
   int major = 0;
   int minor = 0;
   int patch = 0;
-  sscanf(app_version_str, "v%d.%d.%d", &major, &minor, &patch);
+  if (app_version_str[0] == 'v') {
+    sscanf(app_version_str, "v%d.%d.%d", &major, &minor, &patch);
+  } else {
+    sscanf(app_version_str, "%d.%d.%d", &major, &minor, &patch);
+  }
 
   bool dirty = false;
   if (strstr(app_version_str, "-dirty") != NULL) {
@@ -71,10 +75,10 @@ void extract_application_version(const char *app_version_str,
   }
 
   int build = 0;
-  char desc[9] = "";
+  char desc[10] = "";
   const char *first_dash = strchr(app_version_str, '-');
   if (first_dash != NULL && first_dash[1] != '\0' && first_dash[1] != 'd') {
-    sscanf(first_dash + 1, "%d-%8s", &build, desc);
+    sscanf(first_dash + 1, "%d-%9s", &build, desc);
   }
 
   app_version->major = major;
@@ -183,6 +187,7 @@ static esp_err_t validate_image_header(const esp_app_desc_t *new_app_info) {
   if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
     extract_application_version(running_app_info.version, &running_app_version);
     log_application_version("Running", &running_app_version);
+    ESP_LOGD(TAG, "Version string %s", running_app_info.version);
   }
 
   struct application_version_t new_app_version;
