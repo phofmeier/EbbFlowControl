@@ -1,7 +1,8 @@
 name: clang-format (format label)
 
+# pull_request_target: GITHUB_TOKEN can remove PR labels; pull_request often gets 403 on label APIs.
 on:
-  pull_request:
+  pull_request_target:
     types: [labeled]
 
 concurrency:
@@ -18,11 +19,12 @@ jobs:
     permissions:
       contents: write
       issues: write
+      pull-requests: write
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.head_ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v5
         with:
@@ -43,7 +45,7 @@ jobs:
             echo "No clang-format changes."
           else
             git commit -m "Apply clang-format"
-            git push
+            git push origin "HEAD:refs/heads/${{ github.event.pull_request.head.ref }}"
           fi
       - name: Remove format label
         if: always()
