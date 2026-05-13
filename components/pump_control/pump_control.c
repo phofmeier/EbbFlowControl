@@ -120,7 +120,7 @@ void pump_control_task(void *pvParameters) {
     ESP_LOGD(TAG, "Stack high water mark %d",
              uxTaskGetStackHighWaterMark(NULL));
     switch (state) {
-    case PUMPING:
+    case PUMPING: {
       time(&now);
       const double time_diff_s = difftime(now, pumping_start_time);
       if (time_diff_s >= configuration.pump_cycles.pump_time_s) {
@@ -135,8 +135,9 @@ void pump_control_task(void *pvParameters) {
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time_s * 1e3 + 100));
       }
       break;
+    }
 
-    case WAITING:
+    case WAITING: {
       const unsigned short curr_min = get_cur_min_of_day();
       const unsigned short nr_pump_cycles =
           configuration.pump_cycles.nr_pump_cycles;
@@ -178,6 +179,7 @@ void pump_control_task(void *pvParameters) {
             pdTRUE, pdMS_TO_TICKS((minutes_to_next_start * 60 + 10) * 1e3));
       }
       break;
+    }
     }
   }
 }

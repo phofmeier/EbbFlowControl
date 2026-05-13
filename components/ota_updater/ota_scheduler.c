@@ -1,8 +1,8 @@
 #include "ota_scheduler.h"
 
 #include "esp_log.h"
+#include "esp_random.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
 #include <time.h>
@@ -12,50 +12,76 @@
 static const char *TAG = "ota_scheduler";
 
 void ota_scheduler_task(void *pvParameter) {
-  // Note: If we restart at midnight we wait for 24h for the next update. So if
-  // we restart due to any error after an update we do not immediately update
-  // again.
   for (;;) {
-    // Schedule next update somewhere between 0 and 1 o clock.
     setenv("TZ", CONFIG_LOCAL_TIME_ZONE, 1);
     tzset();
-    time_t now;
+    time_t now = 0;
     time(&now);
-    struct tm timeinfo;
-    localtime_r(&now, &timeinfo);
-    const int hours_until_midnight = 24 - timeinfo.tm_hour;
+    struct tm deadline;
+    localtime_r(&now, &deadline);
+    deadline.tm_hour = 0;
+    deadline.tm_min = 0;
+    deadline.tm_sec = 0;
+    deadline.tm_isdst = -1;
+    time_t next_midnight = mktime(&deadline);
+    if (next_midnight == (time_t)-1) {
+      ESP_LOGW(TAG, "mktime failed, retrying in 1 h");
+      vTaskDelay(pdMS_TO_TICKS(3600 * 1000));
+      continue;
+    }
+    double wait_sec = difftime(next_midnight, now);
+    if (wait_sec <= 60) {
+      deadline.tm_mday += 1;
+      deadline.tm_isdst = -1;
+      next_midnight = mktime(&deadline);
+      if (next_midnight == (time_t)-1) {
+        ESP_LOGW(TAG, "mktime failed after day roll, retrying in 1 h");
+        vTaskDelay(pdMS_TO_TICKS(3600 * 1000));
+        continue;
+      }
+      wait_sec = difftime(next_midnight, now);
+    }
+    const uint32_t jitter_s = esp_random() % 3601u;
+    wait_sec += (double)jitter_s;
+    if (wait_sec < 60.0) {
+      wait_sec = 60.0;
+    }
+
     ESP_LOGD(TAG, "Stack high water mark %d",
              uxTaskGetStackHighWaterMark(NULL));
-    ESP_LOGI(TAG, "Wait for %i hours before next update.",
-             hours_until_midnight);
-    const uint32_t delay_ticks =
-        hours_until_midnight * 60 * 60 * configTICK_RATE_HZ;
-    vTaskDelay(delay_ticks);
+    ESP_LOGI(TAG, "Wait %.0f seconds (incl. jitter) before next OTA window.",
+             wait_sec);
 
-    // Try to update now.
-    xTaskCreate(&ota_updater_task, "ota_updater_task", 1024 * 8, NULL, 5, NULL);
+    const uint64_t wait_ticks =
+        (uint64_t)(wait_sec * (double)configTICK_RATE_HZ);
+    const TickType_t chunk_max = pdMS_TO_TICKS(12 * 3600 * 1000ULL);
+    uint64_t remaining = wait_ticks;
+    while (remaining > 0) {
+      TickType_t step =
+          (remaining > (uint64_t)chunk_max) ? chunk_max : (TickType_t)remaining;
+      if (step == 0) {
+        step = 1;
+      }
+      vTaskDelay(step);
+      remaining -= step;
+    }
+
+    xTaskCreate(ota_updater_task, "ota_updater_task", 1024 * 8, NULL, 5, NULL);
   }
 }
 
-/* Stack Size for the connection check task*/
+/* Stack for the OTA scheduler task */
 #define STACK_SIZE 1300
 
-/* Structure that will hold the TCB of the task being created. */
+/* Structure that will hold the TCB of the task. */
 static StaticTask_t xTaskBuffer;
 
-/* Buffer that the task being created will use as its stack. Note this is
-   an array of StackType_t variables. The size of StackType_t is dependent on
-   the RTOS port. */
+/* Buffer that the task will use as its stack. */
 static StackType_t xStack[STACK_SIZE];
 
 void create_ota_scheduler_task() {
   initialize_ota_updater();
-  // Static task without dynamic memory allocation
   xTaskCreateStatic(
-      ota_scheduler_task, "OTAScheduler", /* Task Name */
-      STACK_SIZE,           /* Number of indexes in the xStack array. */
-      NULL,                 /* No Parameter */
-      tskIDLE_PRIORITY + 1, /* Priority at which the task is created. */
-      xStack,               /* Array to use as the task's stack. */
-      &xTaskBuffer);        /* Variable to hold the task's data structure. */
+      ota_scheduler_task, "OTAScheduler", STACK_SIZE, NULL, tskIDLE_PRIORITY + 1,
+      xStack, &xTaskBuffer);
 }

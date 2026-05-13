@@ -1,14 +1,12 @@
+#include "init_utils.h"
+
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #include "esp_vfs.h"
 #include <esp_err.h>
 #include <nvs_flash.h>
 
-/**
- * @brief Initialize the nvs storage for configurations.
- *
- */
-static inline void initialize_nvs() {
+void initialize_nvs(void) {
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
       ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -18,11 +16,7 @@ static inline void initialize_nvs() {
   ESP_ERROR_CHECK(ret);
 }
 
-/**
- * @brief Initialize th SPIFFS filesystem for storing logging data.
- *
- */
-static inline void initialize_spiffs_storage() {
+void initialize_spiffs_storage(void) {
   const char *base_path = "/store";
   const esp_vfs_spiffs_conf_t mount_config = {.base_path = base_path,
                                               .partition_label = "storage",
