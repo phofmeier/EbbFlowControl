@@ -12,8 +12,8 @@
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define VERSION_STRING esp_app_get_description()->version
@@ -55,11 +55,11 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
   ESP_ERROR_CHECK(wifi_utils_get_connection_strength(&rssi_level));
 
   char connected_message[280];
-  const int n = snprintf(
-      connected_message, sizeof(connected_message),
-      "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": "
-      "%i, \"version\": \"%s\"}",
-      configuration.id, rssi_level, VERSION_STRING);
+  const int n =
+      snprintf(connected_message, sizeof(connected_message),
+               "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": "
+               "%i, \"version\": \"%s\"}",
+               configuration.id, rssi_level, VERSION_STRING);
   if (n < 0) {
     ESP_LOGE(TAG, "status connected snprintf failed");
     return;
@@ -67,10 +67,9 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
   if (n >= (int)sizeof(connected_message)) {
     ESP_LOGW(TAG, "status connected message truncated (%d chars needed)", n);
   }
-  const int connected_message_length =
-      (n >= (int)sizeof(connected_message))
-          ? (int)sizeof(connected_message) - 1
-          : n;
+  const int connected_message_length = (n >= (int)sizeof(connected_message))
+                                           ? (int)sizeof(connected_message) - 1
+                                           : n;
 
   static esp_mqtt5_publish_property_config_t status_publish_property = {
       .payload_format_indicator = 1,
