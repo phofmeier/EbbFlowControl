@@ -183,17 +183,15 @@ static esp_err_t validate_image_header(const esp_app_desc_t *new_app_info) {
   struct application_version_t running_app_version = {0};
 
   const bool have_running =
-      (esp_ota_get_partition_description(running, &running_app_info) ==
-       ESP_OK);
+      (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK);
 
   if (have_running) {
     extract_application_version(running_app_info.version, &running_app_version);
     log_application_version("Running", &running_app_version);
     ESP_LOGD(TAG, "Version string %s", running_app_info.version);
   } else {
-    ESP_LOGW(TAG,
-             "Could not read running partition metadata; allowing OTA as "
-             "recovery path");
+    ESP_LOGW(TAG, "Could not read running partition metadata; allowing OTA as "
+                  "recovery path");
     return ESP_OK;
   }
 

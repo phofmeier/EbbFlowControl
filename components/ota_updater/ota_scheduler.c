@@ -81,7 +81,6 @@ static StackType_t xStack[STACK_SIZE];
 
 void create_ota_scheduler_task() {
   initialize_ota_updater();
-  xTaskCreateStatic(
-      ota_scheduler_task, "OTAScheduler", STACK_SIZE, NULL, tskIDLE_PRIORITY + 1,
-      xStack, &xTaskBuffer);
+  xTaskCreateStatic(ota_scheduler_task, "OTAScheduler", STACK_SIZE, NULL,
+                    tskIDLE_PRIORITY + 1, xStack, &xTaskBuffer);
 }

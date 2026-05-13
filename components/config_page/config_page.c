@@ -154,8 +154,7 @@ static esp_err_t set_config_post_handler(httpd_req_t *req) {
       return ESP_FAIL;
     }
     if (ret == 0) {
-      httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
-                          "Unexpected end of body");
+      httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Unexpected end of body");
       return ESP_FAIL;
     }
     total += ret;
