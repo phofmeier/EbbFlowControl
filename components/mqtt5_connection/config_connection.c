@@ -6,6 +6,7 @@
 #include "cJSON.h"
 #include "configuration.h"
 #include "esp_log.h"
+#include <string.h>
 
 static const char *TAG = "mqtt5_config";
 
@@ -55,13 +56,23 @@ void new_configuration_received_cb(esp_mqtt_event_handle_t event) {
 
 void send_current_configuration(esp_mqtt_client_handle_t client) {
   cJSON *json_config = get_config_as_json();
+  if (json_config == NULL) {
+    ESP_LOGE(TAG, "Could not build config JSON object");
+    return;
+  }
   char *json_string = cJSON_PrintUnformatted(json_config);
+  if (json_string == NULL) {
+    ESP_LOGE(TAG, "Could not serialize config to JSON");
+    cJSON_Delete(json_config);
+    return;
+  }
 
   esp_mqtt5_client_set_user_property(&config_publish_property.user_property,
                                      user_property_arr, USE_PROPERTY_ARR_SIZE);
   esp_mqtt5_client_set_publish_property(client, &config_publish_property);
+  const int payload_len = (int)strlen(json_string);
   int msg_id = esp_mqtt_client_publish(client, CONFIG_MQTT_CONFIG_SEND_TOPIC,
-                                       json_string, 0, 1, 1);
+                                       json_string, payload_len, 1, 1);
   esp_mqtt5_client_delete_user_property(config_publish_property.user_property);
   config_publish_property.user_property = NULL;
   ESP_LOGD(TAG, "sent publish successful, msg_id=%d", msg_id);

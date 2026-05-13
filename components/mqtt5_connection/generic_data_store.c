@@ -181,7 +181,6 @@ void generic_data_store_init(struct generic_data_store_t *store,
 
   if (item_size == 0 || max_items == 0) {
     ESP_LOGE(TAG, "Invalid generic data store parameters");
-    xSemaphoreGive(store->mutex);
     return;
   }
 
@@ -204,7 +203,6 @@ void generic_data_store_init(struct generic_data_store_t *store,
   if (data_dir_path) {
     mkdir(data_dir_path, 0777);
   }
-  xSemaphoreGive(store->mutex);
   if (store->items && store->stack_item) {
     ESP_LOGD(TAG, "Generic data store initialized with %u items", max_items);
   }

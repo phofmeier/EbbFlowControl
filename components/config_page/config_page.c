@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <stddef.h>
+
 #include "configuration.h"
 
 extern const char config_page_start[] asm("_binary_config_page_html_start");
@@ -17,34 +19,42 @@ extern const char config_page_end[] asm("_binary_config_page_html_end");
 static const char *TAG = "config_page";
 TaskHandle_t configuration_task_handle_ = NULL;
 
-/** URL decode a string in place */
-void urldecode2(char *dst, const char *src) {
-  while (*src) {
+/** URL decode into dst; writes at most dst_cap bytes including trailing NUL. */
+static void urldecode2(char *dst, size_t dst_cap, const char *src) {
+  if (dst_cap == 0) {
+    return;
+  }
+  size_t w = 0;
+  while (*src && w + 1 < dst_cap) {
     char a, b;
     if ((*src == '%') && ((a = src[1]) && (b = src[2])) &&
-        (isxdigit(a) && isxdigit(b))) {
-      if (a >= 'a')
-        a -= 'a' - 'A';
-      if (a >= 'A')
-        a -= ('A' - 10);
-      else
-        a -= '0';
-      if (b >= 'a')
-        b -= 'a' - 'A';
-      if (b >= 'A')
-        b -= ('A' - 10);
-      else
-        b -= '0';
-      *dst++ = 16 * a + b;
+        (isxdigit((unsigned char)a) && isxdigit((unsigned char)b))) {
+      if (a >= 'a') {
+        a = (char)(a - ('a' - 'A'));
+      }
+      if (a >= 'A') {
+        a = (char)(a - ('A' - 10));
+      } else {
+        a = (char)(a - '0');
+      }
+      if (b >= 'a') {
+        b = (char)(b - ('a' - 'A'));
+      }
+      if (b >= 'A') {
+        b = (char)(b - ('A' - 10));
+      } else {
+        b = (char)(b - '0');
+      }
+      dst[w++] = (char)(16 * a + b);
       src += 3;
     } else if (*src == '+') {
-      *dst++ = ' ';
+      dst[w++] = ' ';
       src++;
     } else {
-      *dst++ = *src++;
+      dst[w++] = *src++;
     }
   }
-  *dst++ = '\0';
+  dst[w] = '\0';
 }
 
 // Helper function to replace placeholder in HTML
@@ -121,20 +131,36 @@ static const httpd_uri_t root = {
 
 static esp_err_t set_config_post_handler(httpd_req_t *req) {
   char buf[1024];
-  int ret, remaining = req->content_len;
+  const int remaining = req->content_len;
 
-  if (remaining > sizeof(buf) - 1) {
+  if (remaining <= 0) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Empty body");
+    return ESP_FAIL;
+  }
+  if (remaining > (int)sizeof(buf) - 1) {
     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Content too long");
     return ESP_FAIL;
   }
 
-  ret = httpd_req_recv(req, buf, remaining);
-  if (ret <= 0) {
-    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
-                        "Failed to receive data");
-    return ESP_FAIL;
+  int total = 0;
+  while (total < remaining) {
+    const int ret = httpd_req_recv(req, buf + total, remaining - total);
+    if (ret < 0) {
+      if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+        continue;
+      }
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                          "Failed to receive data");
+      return ESP_FAIL;
+    }
+    if (ret == 0) {
+      httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
+                          "Unexpected end of body");
+      return ESP_FAIL;
+    }
+    total += ret;
   }
-  buf[ret] = '\0';
+  buf[total] = '\0';
 
   ESP_LOGI(TAG, "Received POST data: %s", buf);
 
@@ -150,15 +176,20 @@ static esp_err_t set_config_post_handler(httpd_req_t *req) {
       if (strcmp(key, "board_id") == 0) {
         configuration.id = atoi(value);
       } else if (strcmp(key, "ssid") == 0) {
-        urldecode2(configuration.network.ssid, value);
+        urldecode2(configuration.network.ssid,
+                   sizeof(configuration.network.ssid), value);
       } else if (strcmp(key, "wifi_password") == 0) {
-        urldecode2(configuration.network.password, value);
+        urldecode2(configuration.network.password,
+                   sizeof(configuration.network.password), value);
       } else if (strcmp(key, "mqtt") == 0) {
-        urldecode2(configuration.network.mqtt_broker, value);
+        urldecode2(configuration.network.mqtt_broker,
+                   sizeof(configuration.network.mqtt_broker), value);
       } else if (strcmp(key, "mqtt_username") == 0) {
-        urldecode2(configuration.network.mqtt_username, value);
+        urldecode2(configuration.network.mqtt_username,
+                   sizeof(configuration.network.mqtt_username), value);
       } else if (strcmp(key, "mqtt_password") == 0) {
-        urldecode2(configuration.network.mqtt_password, value);
+        urldecode2(configuration.network.mqtt_password,
+                   sizeof(configuration.network.mqtt_password), value);
       }
     }
     token = strtok(NULL, "&");

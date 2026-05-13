@@ -32,6 +32,9 @@ void handle_state_changed_callbacks() {
 }
 
 esp_err_t add_notify_for_state_change(TaskHandle_t task) {
+  if (!task) {
+    return ESP_ERR_INVALID_ARG;
+  }
   if (nr_task_to_notify >= CONFIG_MAX_NUMBER_TASK_TO_NOTIFY) {
     return ESP_ERR_NO_MEM;
   }

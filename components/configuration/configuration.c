@@ -65,7 +65,10 @@ void load_configuration() {
     save_configuration();
     return;
   }
-
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "nvs_open failed: %s", esp_err_to_name(err));
+    return;
+  }
   ESP_ERROR_CHECK_WITHOUT_ABORT(
       nvs_get_u8(my_handle, CONFIG_ID_NAME, &configuration.id));
   ESP_ERROR_CHECK_WITHOUT_ABORT(
@@ -315,6 +318,9 @@ void handle_new_configuration_callbacks() {
 }
 
 esp_err_t add_notify_for_new_config(TaskHandle_t task) {
+  if (!task) {
+    return ESP_ERR_INVALID_ARG;
+  }
   if (nr_task_to_notify >= CONFIG_MAX_NUMBER_TASK_TO_NOTIFY) {
     return ESP_ERR_NO_MEM;
   }
