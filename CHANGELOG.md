@@ -13,6 +13,7 @@ Use the following labels:
 
 ## [UNRELEASED]
 
+- [Patch] Applied different fixes and small hardening improvements across the firmware (connectivity, updates, configuration, and related tooling).
 - [Patch] Update IDF version to 6.0.1.
 - [Minor] Add level sensor measuring the level of the nutrition solution.
 - [Patch] Rework data store and remove duplicated code.
