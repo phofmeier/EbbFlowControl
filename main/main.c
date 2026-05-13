@@ -3,7 +3,7 @@
 #include "freertos/FreeRTOS.h"
 #include <esp_err.h>
 
-#include "init_utils.c"
+#include "init_utils.h"
 
 #include "configuration.h"
 #include "data_logging.h"

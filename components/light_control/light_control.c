@@ -205,8 +205,11 @@ void light_control_task(void *pvParameters) {
 }
 
 TaskHandle_t create_light_control_task() {
-  TaskHandle_t task_handle;
-  xTaskCreate(light_control_task, "light_control_task", 4096, NULL,
-              tskIDLE_PRIORITY + 2, &task_handle);
+  TaskHandle_t task_handle = NULL;
+  if (xTaskCreate(light_control_task, "light_control_task", 4096, NULL,
+                  tskIDLE_PRIORITY + 2, &task_handle) != pdPASS) {
+    ESP_LOGE(TAG, "Failed to create light control task");
+    return NULL;
+  }
   return task_handle;
 }
