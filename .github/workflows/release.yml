@@ -10,6 +10,9 @@ jobs:
   create_release:
     name: Create Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
     steps:
       - name: Get version from tag
         id: tag_name
@@ -34,12 +37,24 @@ jobs:
             ./build_all.sh
       - name: Zip factory build files
         run: |
-          # Extract filenames from flash_project_args (keeping paths)
-          FILES_TO_ZIP=$(awk 'NR > 1 {print "./build_factory/"$2}' ./build_factory/flash_project_args | tr '\n' ' ')
-          # Add additional files
-          FILES_TO_ZIP="$FILES_TO_ZIP EbbFlowControl-Setup_wifi_qr.png EbbFlowControl-Setup_connection_url_qr.png ./build_factory/flash_project_args"
-          echo "Files to zip: $FILES_TO_ZIP"
-          zip FactoryBuildFiles.zip $FILES_TO_ZIP
+          set -euo pipefail
+          FLASH_ARGS="./build_factory/flash_project_args"
+          test -f "$FLASH_ARGS"
+          mapfile -t bins < <(awk 'NR > 1 {print "./build_factory/"$2}' "$FLASH_ARGS")
+          if [[ ${#bins[@]} -eq 0 ]]; then
+            echo "No binary paths parsed from $FLASH_ARGS"
+            exit 1
+          fi
+          extras=(
+            EbbFlowControl-Setup_wifi_qr.png
+            EbbFlowControl-Setup_connection_url_qr.png
+            "$FLASH_ARGS"
+          )
+          for f in "${extras[@]}"; do
+            test -f "$f" || { echo "Missing required file: $f"; exit 1; }
+          done
+          echo "Zipping ${#bins[@]} firmware files plus extras"
+          zip FactoryBuildFiles.zip "${bins[@]}" "${extras[@]}"
       - name: Get Changelog Entry
         id: changelog_reader
         uses: mindsers/changelog-reader-action@v2
@@ -51,12 +66,13 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.changelog_reader.outputs.version }}
+          tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.changelog_reader.outputs.version }}
           body: ${{ steps.changelog_reader.outputs.changes }}
           prerelease: ${{ steps.changelog_reader.outputs.status == 'prereleased' }}
           draft: ${{ steps.changelog_reader.outputs.status == 'unreleased' }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          fail_on_unmatched_files: true
           files: |
             ./build_app/EbbFlowControl.bin
             FactoryBuildFiles.zip
