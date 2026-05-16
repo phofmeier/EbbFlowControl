@@ -19,6 +19,68 @@ const static char *TAG = "generic_data_store";
 
 #define MAX_FILE_ID 9999
 
+#define WRITE_CHUNK_SIZE 256
+
+/*** Write data to a file in chunks used such that the heap is not exhausted. */
+bool write_file_chunked(int fd, const void *data, size_t total_size) {
+  const uint8_t *ptr = (const uint8_t *)data;
+  size_t remaining = total_size;
+
+  while (remaining > 0) {
+    size_t chunk_size =
+        (remaining > WRITE_CHUNK_SIZE) ? WRITE_CHUNK_SIZE : remaining;
+
+    int written = write(fd, ptr, chunk_size);
+
+    if (written < 0) {
+      ESP_LOGE(TAG, "write failed: %s", strerror(errno));
+      return false;
+    }
+
+    if ((size_t)written != chunk_size) {
+      ESP_LOGE(TAG, "partial write: expected %u got %d", (unsigned)chunk_size,
+               written);
+      return false;
+    }
+
+    ptr += written;
+    remaining -= written;
+  }
+
+  return true;
+}
+
+#define READ_CHUNK_SIZE 256
+
+/*** Read data from a file in chunks used such that the heap is not exhausted.
+ */
+bool read_file_chunked(int fd, void *data, size_t total_size) {
+  uint8_t *ptr = (uint8_t *)data;
+  size_t remaining = total_size;
+
+  while (remaining > 0) {
+    size_t chunk_size =
+        (remaining > READ_CHUNK_SIZE) ? READ_CHUNK_SIZE : remaining;
+
+    int bytes_read = read(fd, ptr, chunk_size);
+
+    if (bytes_read < 0) {
+      ESP_LOGE(TAG, "read failed: %s", strerror(errno));
+      return false;
+    }
+
+    if (bytes_read == 0) {
+      ESP_LOGE(TAG, "unexpected EOF");
+      return false;
+    }
+
+    ptr += bytes_read;
+    remaining -= bytes_read;
+  }
+
+  return true;
+}
+
 static inline unsigned int increment_file_id(unsigned int *next_file_id) {
   (*next_file_id)++;
   if (*next_file_id > MAX_FILE_ID) {
@@ -45,16 +107,11 @@ void generic_data_store_write_to_disc_(struct generic_data_store_t *store) {
     return;
   }
   size_t total_size = store->max_items * store->item_size;
-  int written_bytes = write(fd, store->items, total_size);
+  bool write_success = write_file_chunked(fd, store->items, total_size);
   close(fd);
-  if (written_bytes < 0) {
+  if (!write_success) {
     ESP_LOGE(TAG, "Failed to write to file %s, error: %s", store->path,
              strerror(errno));
-    return;
-  }
-  if ((size_t)written_bytes != total_size) {
-    ESP_LOGE(TAG, "Failed to write all data to file %s, written: %d",
-             store->path, written_bytes);
     return;
   }
   ESP_LOGI(TAG, "Data written to file %s", store->path);
@@ -88,23 +145,19 @@ void generic_data_store_read_from_disc_(struct generic_data_store_t *store) {
       continue;
     }
     size_t total_size = store->max_items * store->item_size;
-    int bytes_read = read(fd, store->items, total_size);
+    bool read_success = read_file_chunked(fd, store->items, total_size);
     close(fd);
-    if (bytes_read < 0) {
-      ESP_LOGE(TAG, "Failed to read from file %s, error: %s", store->path,
-               strerror(errno));
-      continue;
-    }
-    if ((size_t)bytes_read == total_size) {
+    if (read_success) {
       store->count = store->max_items;
       remove(store->path);
       closedir(root_dir);
       ESP_LOGD(TAG, "Data read from file %s", store->path);
       return;
     } else {
-      ESP_LOGW(TAG, "File %s has incorrect size, expected %zu, got %d",
-               store->path, total_size, bytes_read);
+      ESP_LOGE(TAG, "Failed to read from file %s, error: %s", store->path,
+               strerror(errno));
       remove(store->path);
+      continue;
     }
   }
   closedir(root_dir);
