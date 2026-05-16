@@ -1,0 +1,13 @@
+menu "GP8211S I2C Configuration"
+    config GP8211S_I2C_SCL_PIN
+        int "GP8211S I2C SCL pin"
+        default 22
+        help
+            Set the GPIO pin number used for the GP8211S I2C SCL line.
+
+    config GP8211S_I2C_SDA_PIN
+        int "GP8211S I2C SDA pin"
+        default 21
+        help
+            Set the GPIO pin number used for the GP8211S I2C SDA line.
+endmenu

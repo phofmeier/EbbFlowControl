@@ -26,15 +26,13 @@ i2c_master_dev_handle_t gp8211s_dev_handle;
 // Resolution is 15 bit. Bit 16 needs to be 0
 
 #define I2C_MASTER_PORT I2C_NUM_0
-#define I2C_MASTER_SCL_IO 22
-#define I2C_MASTER_SDA_IO 21
 
 void gp8211s_init_i2c() {
   i2c_master_bus_config_t i2c_mst_config = {
       .clk_source = I2C_CLK_SRC_DEFAULT,
       .i2c_port = I2C_MASTER_PORT,
-      .scl_io_num = I2C_MASTER_SCL_IO,
-      .sda_io_num = I2C_MASTER_SDA_IO,
+      .scl_io_num = CONFIG_GP8211S_I2C_SCL_PIN,
+      .sda_io_num = CONFIG_GP8211S_I2C_SDA_PIN,
       .glitch_ignore_cnt = 7,
       .flags.enable_internal_pullup = true,
   };

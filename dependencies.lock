@@ -2,49 +2,93 @@ dependencies:
   configuration:
     dependencies:
     - name: idf
-      version: '>=4.1.0'
+      version: '>=6.0.1'
+    - name: espressif/cjson
+      version: ^1.7.19
     source:
-      path: /workspaces/EbbFlowControl/components/configuration
+      path: components/configuration
       type: local
     version: '*'
   driver_gp8211s:
     dependencies: []
     source:
-      path: /workspaces/EbbFlowControl/components/driver_gp8211s
+      path: components/driver_gp8211s
       type: local
     version: '*'
+  driver_hc_sr04:
+    dependencies: []
+    source:
+      path: components/driver_hc_sr04
+      type: local
+    version: '*'
+  espressif/cjson:
+    component_hash: e788323270d90738662d66fffa910bfe1fba019bba087f01557e70c40485b469
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.7.19~2
+  espressif/mqtt:
+    component_hash: ffdad5659706b4dc14bc63f8eb73ef765efa015bf7e9adf71c813d52a2dc9342
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.3'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.0.0
   idf:
     source:
       type: idf
-    version: 5.5.3
+    version: 6.0.1
   mqtt5_connection:
     dependencies:
     - name: idf
-      version: '>=4.1.0'
+      version: '>=6.0.1'
+    - name: espressif/cjson
+      version: ^1.7.19
+    - name: espressif/mqtt
+      version: '*'
     - name: configuration
       path: ../configuration/
     - name: wifi_utils
       path: ../wifi_utils/
     source:
-      path: /workspaces/EbbFlowControl/components/mqtt5_connection
+      path: components/mqtt5_connection
+      type: local
+    version: '*'
+  state:
+    dependencies: []
+    source:
+      path: components/state
       type: local
     version: '*'
   wifi_utils:
     dependencies:
     - name: idf
-      version: '>=4.1.0'
+      version: '>=6.0.1'
+    - name: espressif/cjson
+      version: ^1.7.19
     - name: configuration
       path: ../configuration/
     source:
-      path: /workspaces/EbbFlowControl/components/wifi_utils
+      path: components/wifi_utils
       type: local
     version: '*'
 direct_dependencies:
 - configuration
 - driver_gp8211s
+- driver_hc_sr04
+- espressif/cjson
+- espressif/mqtt
 - idf
 - mqtt5_connection
+- state
 - wifi_utils
-manifest_hash: f9657c6d8cfee3b776ced7766b9e54ac7a5d9924c450f8a16b1d2faf8121028b
+manifest_hash: a443826a024da617945e7d60f92fb7a1742f0180e3e6663db9c29216b86baa89
 target: esp32
-version: 2.0.0
+version: 3.0.0

@@ -46,12 +46,21 @@ void log_heap_size();
  * @param data Data to be added in cJSON format.
  */
 void add_pump_data_item(bool pump_on);
+
 /**
  * @brief Add new light data to the data logging queue.
  *
  * @param intensity Intensity value to be logged.
  */
 void add_light_data_item(uint16_t intensity);
+
+/**
+ * @brief Add new level data to the data logging queue.
+ *
+ * @param distance_mm distance in millimeters
+ */
+void add_level_data_item(uint16_t distance_mm);
+
 /**
  * @brief Set a connected event.
  *

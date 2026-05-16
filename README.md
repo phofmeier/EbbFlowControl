@@ -75,6 +75,7 @@ NutritionPump(Nutrition Pump)
 RelayBoard(Relay Board GPIO)
 GrowLight(Grow Light)
 GP8211S(Light Controller GP8211S)
+HC-SR04(Level Sensor HC-SR04)
 EbbFlowControl(Ebb Flow Controller)
 
 MQTT <--> WIFI;
@@ -83,7 +84,18 @@ EbbFlowControl --> RelayBoard
 RelayBoard --> NutritionPump
 EbbFlowControl --> GP8211S
 GP8211S --> GrowLight
+EbbFlowControl <-- HC-SR04
 ```
+
+### Default Pin Configuration
+
+| Function | Configuration name | Default GPIO pin |
+|---|---|---|
+| HC-SR04 trigger | `CONFIG_HC_SR04_TRIGGER_PIN` | 5 |
+| HC-SR04 echo | `CONFIG_HC_SR04_ECHO_PIN` | 18 |
+| Pump output | `CONFIG_PUMP_GPIO_OUTPUT_PIN` | 4 |
+| GP8211S I2C SCL | `CONFIG_GP8211S_I2C_SCL_PIN` | 22 |
+| GP8211S I2C SDA | `CONFIG_GP8211S_I2C_SDA_PIN` | 21 |
 
 ## Configuration
 
@@ -216,5 +228,27 @@ Example:
   "id": 0,
   "ts": "2026-03-15T12:34:56.123456+0100",
   "intensity": 32768
+}
+```
+
+### Level
+
+Channel: `MQTT_LEVEL_STATUS_TOPIC` (default: `"ef/efc/timed/level"`)
+
+Data-Format: json
+
+Data:
+| Key       | Typ      | Description                        |
+|-----------|----------|------------------------------------|
+| id        | uint_8   | Id of the specific board           |
+| ts        | string   | Current timestamp in ISO 8601      |
+| distance_mm | uint16_t | distance measured by the level sensor    |
+
+Example:
+```json
+{
+  "id": 0,
+  "ts": "2026-03-15T12:34:56.123456+0100",
+  "distance_mm": 132
 }
 ```

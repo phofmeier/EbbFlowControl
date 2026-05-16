@@ -7,11 +7,13 @@
 
 #include "configuration.h"
 #include "data_logging.h"
+#include "level_sensor.h"
 #include "light_control.h"
 #include "mqtt5_connection.h"
 #include "ota_scheduler.h"
 #include "ota_updater.h"
 #include "pump_control.h"
+#include "state.h"
 #include "wifi_utils_sntp.h"
 #include "wifi_utils_sta.h"
 
@@ -19,6 +21,8 @@ void app_main(void) {
   // Configure GPIOS
   configure_pump_output();
   initialize_light_control();
+  level_sensor_init();
+
   // Initialize storage
   initialize_nvs();
   initialize_spiffs_storage();
@@ -44,14 +48,19 @@ void app_main(void) {
   ESP_ERROR_CHECK(add_notify_for_new_config(create_pump_control_task()));
   ESP_ERROR_CHECK(add_notify_for_new_config(create_light_control_task()));
 
+  ESP_ERROR_CHECK(add_notify_for_state_change(create_level_sensor_task()));
+
   // Might wait up to 24 hours for the first update.
   create_ota_scheduler_task();
 
   // Mark config as valid after successful wifi and mqtt connection
 
   // After running for 25 hours without any errors we can mark it valid.
-  static const uint32_t initial_delay_ticks = 25 * 60 * 60 * configTICK_RATE_HZ;
-  vTaskDelay(initial_delay_ticks);
+  const TickType_t one_hour_ticks = pdMS_TO_TICKS(60ULL * 60ULL * 1000ULL);
+  for (int i = 0; i < 25; i++) {
+    vTaskDelay(one_hour_ticks);
+  }
+
   while (configuration.network.valid_bits !=
          (NETWORK_WIFI_VALID_BIT | NETWORK_MQTT_VALID_BIT)) {
     vTaskDelay(pdMS_TO_TICKS(1000 * 60 * 60)); // check every hour
