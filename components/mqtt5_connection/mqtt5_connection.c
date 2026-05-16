@@ -9,9 +9,11 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 #include "wifi_utils_sta.h"
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define VERSION_STRING esp_app_get_description()->version
@@ -32,6 +34,16 @@ static esp_mqtt_client_handle_t client_;
 
 static bool mqtt5_connected = false;
 
+static bool mqtt_is_config_receive_topic(const esp_mqtt_event_handle_t event) {
+  if (!event || !event->topic || event->topic_len <= 0) {
+    return false;
+  }
+  const char *want = CONFIG_MQTT_CONFIG_RECEIVE_TOPIC;
+  const size_t want_len = strlen(want);
+  return (size_t)event->topic_len == want_len &&
+         strncmp(event->topic, want, want_len) == 0;
+}
+
 /**
  * @brief Publish message that the status is connected.
  *
@@ -42,12 +54,22 @@ void send_status_connected(esp_mqtt_client_handle_t client) {
   int rssi_level = -100;
   ESP_ERROR_CHECK(wifi_utils_get_connection_strength(&rssi_level));
 
-  char connected_message[112];
-  int connected_message_length =
-      sprintf(connected_message,
-              "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": "
-              "%i, \"version\": \"%s\"}",
-              configuration.id, rssi_level, VERSION_STRING);
+  char connected_message[280];
+  const int n =
+      snprintf(connected_message, sizeof(connected_message),
+               "{\"id\": %3u, \"connection\": \"connected\", \"rssi_level\": "
+               "%i, \"version\": \"%s\"}",
+               configuration.id, rssi_level, VERSION_STRING);
+  if (n < 0) {
+    ESP_LOGE(TAG, "status connected snprintf failed");
+    return;
+  }
+  if (n >= (int)sizeof(connected_message)) {
+    ESP_LOGW(TAG, "status connected message truncated (%d chars needed)", n);
+  }
+  const int connected_message_length = (n >= (int)sizeof(connected_message))
+                                           ? (int)sizeof(connected_message) - 1
+                                           : n;
 
   static esp_mqtt5_publish_property_config_t status_publish_property = {
       .payload_format_indicator = 1,
@@ -105,6 +127,10 @@ static void print_user_property(mqtt5_user_property_handle_t user_property) {
     if (count) {
       esp_mqtt5_user_property_item_t *item =
           malloc(count * sizeof(esp_mqtt5_user_property_item_t));
+      if (!item) {
+        ESP_LOGE(TAG, "malloc failed for MQTT user properties");
+        return;
+      }
       if (esp_mqtt5_client_get_user_property(user_property, item, &count) ==
           ESP_OK) {
         for (int i = 0; i < count; i++) {
@@ -185,7 +211,7 @@ static void mqtt5_event_handler(void *handler_args, esp_event_base_t base,
   case MQTT_EVENT_DATA:
     ESP_LOGD(TAG, "MQTT_EVENT_DATA");
     print_user_property(event->property->user_property);
-    if (strcmp(event->topic, CONFIG_MQTT_CONFIG_RECEIVE_TOPIC)) {
+    if (mqtt_is_config_receive_topic(event)) {
       new_configuration_received_cb(event);
       break;
     }

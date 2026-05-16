@@ -12,5 +12,8 @@ jobs:
   changelog:
     runs-on: ubuntu-latest
     if: ${{ !github.event.pull_request.draft }}
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: dangoslen/changelog-enforcer@v3

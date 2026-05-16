@@ -1,8 +1,9 @@
 #include "esp_event.h"
+#include "esp_log.h"
 #include "esp_netif.h"
 #include <esp_err.h>
 
-#include "init_utils.c"
+#include "init_utils.h"
 
 #include "config_page.h"
 #include "configuration.h"
@@ -34,8 +35,8 @@ void app_main(void) {
       (NETWORK_WIFI_VALID_BIT | NETWORK_MQTT_VALID_BIT)) {
     // if config valid wait for one minute and check if somebody connected to
     // the ap
-    const u_int32_t wait_time = pdMS_TO_TICKS(60 * 1e3);
-    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(wait_time));
+    const TickType_t wait_time = pdMS_TO_TICKS(60 * 1000);
+    ulTaskNotifyTake(pdTRUE, wait_time);
   }
 
   if (configuration.network.valid_bits !=
@@ -63,5 +64,5 @@ void app_main(void) {
 
   // run ota updater task
   initialize_ota_updater();
-  xTaskCreate(&ota_updater_task, "ota_updater_task", 1024 * 8, NULL, 5, NULL);
+  xTaskCreate(ota_updater_task, "ota_updater_task", 1024 * 8, NULL, 5, NULL);
 }

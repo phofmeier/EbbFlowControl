@@ -1,0 +1,57 @@
+name: clang-format (format label)
+
+# pull_request_target: GITHUB_TOKEN can remove PR labels; pull_request often gets 403 on label APIs.
+on:
+  pull_request_target:
+    types: [labeled]
+
+concurrency:
+  group: clang-format-label-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  clang-format:
+    if: >-
+      github.event.label.name == 'format' &&
+      github.event.pull_request.state == 'open' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pre-commit
+        run: pip install pre-commit
+      - name: Run clang-format (pre-commit hook)
+        run: |
+          # pre-commit exits 1 when hooks rewrite files; run again to verify a stable tree.
+          pre-commit run clang-format --all-files || true
+          pre-commit run clang-format --all-files
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -u
+          if git diff --staged --quiet; then
+            echo "No clang-format changes."
+          else
+            git commit -m "Apply clang-format"
+            git push origin "HEAD:refs/heads/${{ github.event.pull_request.head.ref }}"
+          fi
+      - name: Remove format label
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method DELETE \
+            "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/format" \
+            || true

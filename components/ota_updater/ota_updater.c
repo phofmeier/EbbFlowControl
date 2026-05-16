@@ -1,5 +1,6 @@
 #include "ota_updater.h"
 #include <stdio.h>
+#include <string.h>
 
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
@@ -93,8 +94,9 @@ void extract_application_version(const char *app_version_str,
 /***
  * @brief Compare two application versions.
  *
- * Dirty versions are considered newer (bigger) than clean versions.
- * If both versions are dirty, the first version is considered newer.
+ * Dirty vs clean: the dirty version compares as newer than the same semver
+ * clean build. If semver and build match and both have the same dirty flag,
+ * versions are equal.
  *
  * @param v1 First application version
  * @param v2 Second application version
@@ -118,15 +120,9 @@ int compare_application_versions(const struct application_version_t *v1,
   if (v1->build != v2->build) {
     return (v1->build > v2->build) ? 1 : -1;
   }
-  // Assume dirty version is newer than clean version
-  // if both are dirty the first version is considered newer
   if (v1->dirty != v2->dirty) {
     return (v1->dirty) ? 1 : -1;
   }
-  if (v1->dirty) {
-    return 1;
-  }
-
   return 0;
 }
 
@@ -182,19 +178,27 @@ static esp_err_t validate_image_header(const esp_app_desc_t *new_app_info) {
 
   const esp_partition_t *running = esp_ota_get_running_partition();
   esp_app_desc_t running_app_info;
-  struct application_version_t running_app_version;
+  memset(&running_app_info, 0, sizeof(running_app_info));
 
-  if (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK) {
+  struct application_version_t running_app_version = {0};
+
+  const bool have_running =
+      (esp_ota_get_partition_description(running, &running_app_info) == ESP_OK);
+
+  if (have_running) {
     extract_application_version(running_app_info.version, &running_app_version);
     log_application_version("Running", &running_app_version);
     ESP_LOGD(TAG, "Version string %s", running_app_info.version);
+  } else {
+    ESP_LOGW(TAG, "Could not read running partition metadata; allowing OTA as "
+                  "recovery path");
+    return ESP_OK;
   }
 
   struct application_version_t new_app_version;
   extract_application_version(new_app_info->version, &new_app_version);
   log_application_version("New", &new_app_version);
 
-  // Allow update if factory app is running
   if (strncmp(running_app_info.project_name, "EbbFlowControl-factory",
               sizeof(running_app_info.project_name)) == 0) {
     ESP_LOGI(TAG, "Factory app is running, allowing update to proceed.");

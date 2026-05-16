@@ -1,8 +1,11 @@
-
 #include "driver_gp8211s.h"
 
 #include "driver/i2c_master.h"
+#include "esp_log.h"
+#include <esp_err.h>
 #include <stdio.h>
+
+static const char *TAG = "gp8211s";
 
 i2c_master_bus_handle_t i2c_bus_handle;
 i2c_master_dev_handle_t gp8211s_dev_handle;
@@ -53,19 +56,23 @@ void gp8211s_init_device() {
   // Configure device
   // Set to 10V output range
   const uint8_t config_buffer[2] = {CONFIG_REGISTER, OUTPUT_RANGE_10V_DATA};
-  i2c_master_transmit(gp8211s_dev_handle, config_buffer, sizeof(config_buffer),
-                      10000);
+  esp_err_t err = i2c_master_transmit(gp8211s_dev_handle, config_buffer,
+                                      sizeof(config_buffer), 10000);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "I2C config transmit failed: %s", esp_err_to_name(err));
+  }
 }
 
 void gp8211s_set_output(uint16_t value) {
   if (value > 0x7FFF) {
     value = 0x7FFF; // Clamp to max 15-bit value
   }
-  // Maybe shift value one bit left
-
   uint8_t send_buffer[3] = {OUTPUT_VALUE_REGISTER, (value & 0xff),
                             (value >> 8)};
 
-  i2c_master_transmit(gp8211s_dev_handle, send_buffer, sizeof(send_buffer),
-                      10000);
+  esp_err_t err = i2c_master_transmit(gp8211s_dev_handle, send_buffer,
+                                      sizeof(send_buffer), 10000);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "I2C output transmit failed: %s", esp_err_to_name(err));
+  }
 }

@@ -10,16 +10,18 @@ on:
 jobs:
   auto-update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: sudo apt-get install -y clang-tidy clang-format cppcheck
-      - uses: browniebroke/pre-commit-autoupdate-action@main
+        run: sudo apt-get install -y cppcheck
+      - uses: browniebroke/pre-commit-autoupdate-action@v1.0.1
       - uses: peter-evans/create-pull-request@v8
-        if: always()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: update/pre-commit-hooks
