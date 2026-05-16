@@ -346,19 +346,34 @@ void data_logging_task(void *arg) {
   }
 }
 
+static size_t last_total_bytes = 0;
+static size_t last_used_bytes = 0;
+static uint32_t last_free_heap = 0;
+static uint32_t last_min_free_heap = 0;
+
 void log_heap_size() {
   size_t out_total_bytes;
   size_t out_used_bytes;
   esp_spiffs_info("storage", &out_total_bytes, &out_used_bytes);
+  uint32_t free_heap = esp_get_free_heap_size();
+  uint32_t min_free_heap = esp_get_minimum_free_heap_size();
 
-  memory_data_store_push(esp_get_free_heap_size(),
-                         esp_get_minimum_free_heap_size(), out_total_bytes,
-                         out_used_bytes);
+  if (last_free_heap != free_heap || last_min_free_heap != min_free_heap ||
+      last_used_bytes != out_used_bytes ||
+      last_total_bytes != out_total_bytes) {
 
-  xQueueSendToBack(
-      event_queue_handle_,
-      &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_NEW_DATA},
-      portMAX_DELAY);
+    memory_data_store_push(free_heap, min_free_heap, out_total_bytes,
+                           out_used_bytes);
+
+    xQueueSendToBack(
+        event_queue_handle_,
+        &(struct data_logging_event_t){.type = DATA_LOGGING_EVENT_NEW_DATA},
+        portMAX_DELAY);
+    last_free_heap = free_heap;
+    last_min_free_heap = min_free_heap;
+    last_used_bytes = out_used_bytes;
+    last_total_bytes = out_total_bytes;
+  }
 }
 
 /**
