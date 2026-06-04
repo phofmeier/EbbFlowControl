@@ -84,7 +84,7 @@ EbbFlowControl --> RelayBoard
 RelayBoard --> NutritionPump
 EbbFlowControl --> GP8211S
 GP8211S --> GrowLight
-EbbFlowControl <-- HCSR04
+HCSR04 --> EbbFlowControl
 ```
 
 ### Default Pin Configuration
