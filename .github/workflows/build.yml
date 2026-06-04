@@ -28,6 +28,7 @@ jobs:
         with:
           # Change this to point to your image name
           imageName: ghcr.io/${{ github.repository_owner }}/ebbflowcontrol-devcontainer
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/ebbflowcontrol-devcontainer
           # Change this to be your CI task/script
           runCmd: |
             ./build_all.sh
