@@ -75,7 +75,7 @@ NutritionPump(Nutrition Pump)
 RelayBoard(Relay Board GPIO)
 GrowLight(Grow Light)
 GP8211S(Light Controller GP8211S)
-HC-SR04(Level Sensor HC-SR04)
+HCSR04(Level Sensor HC-SR04)
 EbbFlowControl(Ebb Flow Controller)
 
 MQTT <--> WIFI;
@@ -84,7 +84,7 @@ EbbFlowControl --> RelayBoard
 RelayBoard --> NutritionPump
 EbbFlowControl --> GP8211S
 GP8211S --> GrowLight
-EbbFlowControl <-- HC-SR04
+EbbFlowControl <-- HCSR04
 ```
 
 ### Default Pin Configuration
