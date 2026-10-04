@@ -1,8 +1,14 @@
 {
   "name": "ESP-IDF QEMU",
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "Dockerfile",
+    "args": {
+      "INSTALL_OPENCODE": "false",
+      "OPENCODE_VERSION": "2.0.22"
+    }
   },
+  "remoteUser": "esp",
+  "updateRemoteUserUID": true,
   "customizations": {
     "vscode": {
       "settings": {
@@ -21,10 +27,20 @@
       ]
     }
   },
+  "mounts": [
+    {
+      "source": "${localEnv:HOME}/.config/opencode",
+      "target": "/home/esp/.config/opencode",
+      "type": "bind"
+    },
+    {
+      "source": "${localEnv:HOME}/.local/share/opencode",
+      "target": "/home/esp/.local/share/opencode",
+      "type": "bind"
+    }
+  ],
   "runArgs": [
-    "--privileged",
-    "--device=/dev/ttyUSB0",
     "-p=8070:8070"
   ],
-  "postCreateCommand": "pip install --upgrade pip && pip install setuptools -U && pip install pre-commit &&  pre-commit install --install-hooks"
+  "postCreateCommand": "bash .devcontainer/post_create.sh"
 }
