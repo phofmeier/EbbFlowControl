@@ -27,6 +27,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Ensure OpenCode directories exist
+        run: |
+          mkdir -p ~/.config/opencode ~/.local/share/opencode
       - name: Build and run Dev Container task
         uses: devcontainers/ci@v0.3
         with:

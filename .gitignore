@@ -64,3 +64,6 @@ log.*
 FactoryBuildFiles.zip
 downloads/
 managed_components/
+build_*/
+
+venv/
